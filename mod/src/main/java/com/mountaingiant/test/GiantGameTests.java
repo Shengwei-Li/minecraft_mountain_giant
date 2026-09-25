@@ -4,8 +4,10 @@ import com.mojang.logging.LogUtils;
 import com.mountaingiant.MountainGiantMod;
 import com.mountaingiant.entity.MountainGiant;
 import com.mountaingiant.registry.ModEntities;
+import com.mountaingiant.registry.ModItems;
 import com.mountaingiant.world.GiantSpawner;
 import com.mountaingiant.world.GiantWorldData;
+import com.mountaingiant.world.Shockwave;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -16,6 +18,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Husk;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -469,12 +472,76 @@ public class GiantGameTests {
             giant.kill();
         });
         helper.runAfterDelay(300, () -> {
-            LOG.info("[giant-test] spawn: after death recorded={}", data.hasGiant(level.getGameTime()));
+            int hearts = 0;
+            int diamonds = 0;
+            for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, new AABB(origin).inflate(40))) {
+                if (item.getItem().is(ModItems.MOUNTAIN_HEART.get())) {
+                    hearts += item.getItem().getCount();
+                }
+                if (item.getItem().is(Items.DIAMOND)) {
+                    diamonds += item.getItem().getCount();
+                }
+            }
+            LOG.info("[giant-test] spawn: after death recorded={} hearts={} diamonds={}",
+                    data.hasGiant(level.getGameTime()), hearts, diamonds);
             if (data.hasGiant(level.getGameTime())) {
                 helper.fail("dead giant still blocks new ones");
+            } else if (hearts != 1 || diamonds != 10) {
+                helper.fail("expected 1 heart and 10 diamonds, got " + hearts + " / " + diamonds);
             } else {
                 helper.succeed();
             }
         });
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100, batch = "hammer")
+    public static void hammerSlamHitsThreeRings(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 16);
+        // the wielder, and a mob standing in each ring plus one out of reach
+        // husks: zombies would burn in the test world's daylight and spoil the numbers
+        Husk wielder = EntityType.HUSK.create(level);
+        wielder.moveTo(origin.getX() + 0.5, origin.getY(), origin.getZ() + 0.5, 0.0F, 0.0F);
+        wielder.setNoAi(true);
+        level.addFreshEntity(wielder);
+        double[] distances = {2.0, 4.5, 7.0, 11.0};
+        Husk[] targets = new Husk[distances.length];
+        for (int i = 0; i < distances.length; i++) {
+            Husk z = EntityType.HUSK.create(level);
+            z.moveTo(origin.getX() + 0.5 + distances[i], origin.getY(), origin.getZ() + 0.5, 0.0F, 0.0F);
+            z.setNoAi(true);
+            level.addFreshEntity(z);
+            targets[i] = z;
+        }
+        helper.runAfterDelay(5, () -> Shockwave.start(level, wielder));
+        helper.runAfterDelay(30, () -> {
+            float[] lost = new float[targets.length];
+            for (int i = 0; i < targets.length; i++) {
+                lost[i] = targets[i].getMaxHealth() - targets[i].getHealth();
+            }
+            LOG.info("[giant-test] hammer: damage by distance 2 / 4.5 / 7 / 11 = {} / {} / {} / {}, wielder hurt {}",
+                    lost[0], lost[1], lost[2], lost[3], wielder.getMaxHealth() - wielder.getHealth());
+            if (!(lost[0] > lost[1] && lost[1] > lost[2] && lost[2] > 0 && lost[3] == 0)) {
+                helper.fail("rings should hurt less further out and not reach 11 blocks");
+            } else if (wielder.getHealth() < wielder.getMaxHealth()) {
+                helper.fail("the slam hurt its own wielder");
+            } else if (Shockwave.activeCount() != 0) {
+                helper.fail("shockwave never finished");
+            } else {
+                helper.succeed();
+            }
+        });
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20, batch = "hammer")
+    public static void hammerRecipeLoads(GameTestHelper helper) {
+        var recipe = helper.getLevel().getRecipeManager().byKey(
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MountainGiantMod.MODID, "mountain_hammer"));
+        LOG.info("[giant-test] hammer recipe loaded: {}", recipe.isPresent());
+        if (recipe.isEmpty()) {
+            helper.fail("hammer recipe missing");
+        } else {
+            helper.succeed();
+        }
     }
 }

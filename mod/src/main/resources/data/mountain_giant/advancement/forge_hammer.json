@@ -1,0 +1,29 @@
+{
+  "parent": "mountain_giant:slay_giant",
+  "display": {
+    "icon": {
+      "id": "mountain_giant:mountain_hammer"
+    },
+    "title": {
+      "translate": "advancements.mountain_giant.forge_hammer.title"
+    },
+    "description": {
+      "translate": "advancements.mountain_giant.forge_hammer.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "has_hammer": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "mountain_giant:mountain_hammer"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@ Builds:
   mountain_hammer.bbmodel          Java Block/Item model, opens in Blockbench (Display tab shows hand/GUI poses)
   textures/mountain_hammer.png     128x64, 1 texel per model unit (same pixel scale as vanilla items)
   textures/mountain_heart.png      16x16 icon sampled from references/material.png
-  export/                          the files the mod will use (item model json + textures)
+  mod/.../assets/mountain_giant/    item models + textures used by the mod
 
 python tools/gen_hammer.py
 """
@@ -243,10 +243,14 @@ item_model = {
     } for e in elements],
     "display": DISPLAY,
 }
-export = os.path.join(ROOT, "export")
-os.makedirs(export, exist_ok=True)
-with open(os.path.join(export, "mountain_hammer.json"), "w", encoding="utf-8") as fp:
+# straight into the mod's resources
+assets = os.path.join(ROOT, "mod", "src", "main", "resources", "assets", "mountain_giant")
+os.makedirs(os.path.join(assets, "models", "item"), exist_ok=True)
+os.makedirs(os.path.join(assets, "textures", "item"), exist_ok=True)
+with open(os.path.join(assets, "models", "item", "mountain_hammer.json"), "w", encoding="utf-8") as fp:
     json.dump(item_model, fp, indent=1)
-tex_img.save(os.path.join(export, "mountain_hammer.png"))
-heart_img.save(os.path.join(export, "mountain_heart.png"))
+with open(os.path.join(assets, "models", "item", "mountain_heart.json"), "w", encoding="utf-8") as fp:
+    json.dump({"parent": "minecraft:item/generated", "textures": {"layer0": "mountain_giant:item/mountain_heart"}}, fp, indent=1)
+tex_img.save(os.path.join(assets, "textures", "item", "mountain_hammer.png"))
+heart_img.save(os.path.join(assets, "textures", "item", "mountain_heart.png"))
 print(f"{len(elements)} elements, texture rows used: {y + shelf}/{TEXH}, heart grid {cols}x{rows}")

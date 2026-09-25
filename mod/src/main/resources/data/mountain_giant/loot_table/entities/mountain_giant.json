@@ -15,6 +15,15 @@
           ]
         }
       ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mountain_giant:mountain_heart"
+        }
+      ]
     }
   ]
 }

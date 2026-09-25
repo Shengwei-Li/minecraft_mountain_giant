@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "IHI",
+    "MSM",
+    " S "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_block"
+    },
+    "H": {
+      "item": "mountain_giant:mountain_heart"
+    },
+    "M": {
+      "item": "minecraft:mossy_cobblestone"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "mountain_giant:mountain_hammer",
+    "count": 1
+  }
+}
