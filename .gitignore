@@ -1,0 +1,14 @@
+# generated / local-only
+preview/
+*.log
+__pycache__/
+
+# Gradle / IDE (inside mod/)
+mod/.gradle/
+mod/build/
+mod/run/
+mod/runs/
+mod/repo/
+mod/.idea/
+mod/*.iml
+mod/out/

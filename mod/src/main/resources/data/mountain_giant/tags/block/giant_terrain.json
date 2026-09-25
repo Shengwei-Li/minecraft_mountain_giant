@@ -1,0 +1,19 @@
+{
+  "values": [
+    "#minecraft:dirt",
+    "#minecraft:base_stone_overworld",
+    "#minecraft:sand",
+    "#minecraft:terracotta",
+    "#minecraft:snow",
+    "#minecraft:coal_ores",
+    "#minecraft:iron_ores",
+    "#minecraft:copper_ores",
+    "minecraft:gravel",
+    "minecraft:clay",
+    "minecraft:dirt_path",
+    "minecraft:farmland",
+    "minecraft:sandstone",
+    "minecraft:red_sandstone",
+    "minecraft:packed_ice"
+  ]
+}

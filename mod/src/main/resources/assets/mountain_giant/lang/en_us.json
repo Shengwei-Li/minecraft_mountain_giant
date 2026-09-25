@@ -1,0 +1,10 @@
+{
+  "entity.mountain_giant.mountain_giant": "Mountain Giant",
+  "item.mountain_giant.mountain_giant_spawn_egg": "Mountain Giant Spawn Egg",
+  "message.mountain_giant.tremor": "The ground trembles...",
+  "command.mountain_giant.not_overworld": "The Mountain Giant only walks the Overworld.",
+  "command.mountain_giant.already": "A Mountain Giant already walks this world.",
+  "command.mountain_giant.no_spot": "No flat, dry plains within 48-96 blocks of you.",
+  "command.mountain_giant.omen": "The ground begins to tremble near %s, %s, %s.",
+  "command.mountain_giant.status": "Giant: %s | tonight: %s | time of day: %s"
+}
