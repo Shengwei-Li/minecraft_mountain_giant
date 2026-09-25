@@ -163,7 +163,7 @@ x0, y0 = xs.min(), ys.min()
 cols = int(round((xs.max() - x0 + 1) / cell))
 rows = int(round((ys.max() - y0 + 1) / cell))
 icon = np.zeros((16, 16, 4), np.uint8)
-ox, oy = (16 - cols) // 2, (16 - rows) // 2
+ox, oy = (16 - cols) // 2 + 1, (16 - rows) // 2  # +1: sits centred in the slot
 for r in range(rows):
     for c in range(cols):
         px, py = int(x0 + (c + 0.5) * cell), int(y0 + (r + 0.5) * cell)
@@ -171,6 +171,62 @@ for r in range(rows):
             icon[oy + r, ox + c, :3] = arr[py, px]
             icon[oy + r, ox + c, 3] = 255
 heart_img = Image.fromarray(icon, "RGBA")
+
+
+# ---------------------------------------------------------------------------
+# Flat 16x16 inventory icon of the hammer (like vanilla weapons: handle bottom-left, head top-right)
+# ---------------------------------------------------------------------------
+def hammer_icon():
+    COLORS = {
+        "stone": (138, 134, 138), "iron": (44, 42, 48), "gold": (232, 182, 70),
+        "wood": (118, 80, 48), "outline": (30, 27, 32),
+    }
+    SQ2 = math.sqrt(2.0)
+
+    def material_at(px, py):
+        # u runs along the handle towards the top-right, v across it
+        dx, dy = px - 8.0, py - 8.0
+        u, v = (dx - dy) / SQ2, (dx + dy) / SQ2
+        av = abs(v)
+        if 2.9 <= u <= 8.6 and av <= 6.3:                      # head
+            if 4.2 <= av <= 5.2:
+                return "iron"                                  # black hoops near the ends
+            if 1.7 <= av <= 2.4:
+                return "gold"                                  # gold trims
+            if u >= 7.8 and av <= 1.0:
+                return "gold"                                  # the plate on top
+            return "stone"
+        if -8.4 <= u < 2.9 and av <= 0.95:                     # handle
+            if -5.4 <= u <= -4.4 or -1.2 <= u <= -0.2:
+                return "gold"                                  # bands
+            return "wood"
+        if -10.4 <= u < -8.4 and av <= 1.5:                    # pommel with a gold ring
+            return "gold" if u >= -9.0 else "stone"
+        return None
+
+    grid = [[material_at(x + 0.5, y + 0.5) for x in range(16)] for y in range(16)]
+    img = np.zeros((16, 16, 4), np.uint8)
+    for y in range(16):
+        for x in range(16):
+            mat = grid[y][x]
+            if mat is None:
+                # outline: a dark pixel wherever the shape touches empty space
+                if any(0 <= y + oy < 16 and 0 <= x + ox < 16 and grid[y + oy][x + ox] is not None
+                       for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    img[y, x] = (*COLORS["outline"], 255)
+                continue
+            r, g, b = COLORS[mat]
+            # light from the top-left: brighten where the pixel above-left is outside the shape
+            up_left_empty = (y == 0 or grid[y - 1][x] is None) or (x == 0 or grid[y][x - 1] is None)
+            down_right_empty = (y == 15 or grid[y + 1][x] is None) or (x == 15 or grid[y][x + 1] is None)
+            k = 1.22 if up_left_empty else 0.78 if down_right_empty else 1.0
+            if mat == "stone" and (x * 7 + y * 13) % 5 == 0:
+                k *= 0.9  # a little stone speckle
+            img[y, x] = (min(255, int(r * k)), min(255, int(g * k)), min(255, int(b * k)), 255)
+    return Image.fromarray(img, "RGBA")
+
+
+hammer_icon_img = hammer_icon()
 
 # ---------------------------------------------------------------------------
 # Display transforms (how it sits in hand, GUI, item frame...)
@@ -247,10 +303,20 @@ item_model = {
 assets = os.path.join(ROOT, "mod", "src", "main", "resources", "assets", "mountain_giant")
 os.makedirs(os.path.join(assets, "models", "item"), exist_ok=True)
 os.makedirs(os.path.join(assets, "textures", "item"), exist_ok=True)
-with open(os.path.join(assets, "models", "item", "mountain_hammer.json"), "w", encoding="utf-8") as fp:
+# 3D hammer in the hands; the flat icon in the inventory, on the ground and in item frames (like vanilla weapons)
+with open(os.path.join(assets, "models", "item", "mountain_hammer_3d.json"), "w", encoding="utf-8") as fp:
     json.dump(item_model, fp, indent=1)
+flat = {"parent": "minecraft:item/generated", "textures": {"layer0": "mountain_giant:item/mountain_hammer_icon"}}
+with open(os.path.join(assets, "models", "item", "mountain_hammer.json"), "w", encoding="utf-8") as fp:
+    json.dump({
+        "loader": "neoforge:separate_transforms",
+        "base": {"parent": "mountain_giant:item/mountain_hammer_3d"},
+        "perspectives": {"gui": flat, "ground": flat, "fixed": flat},
+    }, fp, indent=1)
 with open(os.path.join(assets, "models", "item", "mountain_heart.json"), "w", encoding="utf-8") as fp:
     json.dump({"parent": "minecraft:item/generated", "textures": {"layer0": "mountain_giant:item/mountain_heart"}}, fp, indent=1)
 tex_img.save(os.path.join(assets, "textures", "item", "mountain_hammer.png"))
 heart_img.save(os.path.join(assets, "textures", "item", "mountain_heart.png"))
+hammer_icon_img.save(os.path.join(assets, "textures", "item", "mountain_hammer_icon.png"))
+hammer_icon_img.save(os.path.join(ROOT, "textures", "mountain_hammer_icon.png"))
 print(f"{len(elements)} elements, texture rows used: {y + shelf}/{TEXH}, heart grid {cols}x{rows}")
