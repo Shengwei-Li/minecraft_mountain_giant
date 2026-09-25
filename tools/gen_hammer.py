@@ -182,26 +182,30 @@ def hammer_icon():
         "wood": (118, 80, 48), "outline": (30, 27, 32),
     }
     SQ2 = math.sqrt(2.0)
+    # laid out like the vanilla axe/hoe icons: a big head filling the top-right up to the slot edges,
+    # a thin handle down to the bottom-left corner
+    ICON_SCALE = 1.06
+    ICON_CENTER = (5.6, 10.4)
 
     def material_at(px, py):
         # u runs along the handle towards the top-right, v across it
-        dx, dy = px - 8.0, py - 8.0
+        dx, dy = (px - ICON_CENTER[0]) / ICON_SCALE, (py - ICON_CENTER[1]) / ICON_SCALE
         u, v = (dx - dy) / SQ2, (dx + dy) / SQ2
         av = abs(v)
-        if 2.9 <= u <= 8.6 and av <= 6.3:                      # head
-            if 4.2 <= av <= 5.2:
+        if 2.9 <= u <= 7.8 and av <= 5.4:                      # head
+            if 3.6 <= av <= 4.5:
                 return "iron"                                  # black hoops near the ends
-            if 1.7 <= av <= 2.4:
+            if 1.4 <= av <= 2.1:
                 return "gold"                                  # gold trims
-            if u >= 7.8 and av <= 1.0:
+            if u >= 7.0 and av <= 0.9:
                 return "gold"                                  # the plate on top
             return "stone"
-        if -8.4 <= u < 2.9 and av <= 0.95:                     # handle
-            if -5.4 <= u <= -4.4 or -1.2 <= u <= -0.2:
+        if -6.0 <= u < 2.9 and av <= 0.95:                     # handle
+            if -4.2 <= u <= -3.4 or -1.0 <= u <= -0.2:
                 return "gold"                                  # bands
             return "wood"
-        if -10.4 <= u < -8.4 and av <= 1.5:                    # pommel with a gold ring
-            return "gold" if u >= -9.0 else "stone"
+        if -7.6 <= u < -6.0 and av <= 1.4:                     # pommel with a gold ring
+            return "gold" if u >= -6.5 else "stone"
         return None
 
     grid = [[material_at(x + 0.5, y + 0.5) for x in range(16)] for y in range(16)]
