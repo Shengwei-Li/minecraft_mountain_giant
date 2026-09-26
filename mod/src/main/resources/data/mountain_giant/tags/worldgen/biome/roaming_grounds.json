@@ -1,5 +1,7 @@
 {
   "values": [
-    "#c:is_plains"
+    "#c:is_plains",
+    "minecraft:snowy_plains",
+    "minecraft:meadow"
   ]
 }

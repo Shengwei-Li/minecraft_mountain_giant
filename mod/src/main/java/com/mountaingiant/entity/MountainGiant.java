@@ -80,6 +80,9 @@ public class MountainGiant extends Monster implements GeoEntity {
     /** Biomes the giant stays in (plains by default, data-driven tag). */
     public static final TagKey<Biome> ROAMING_GROUNDS =
             TagKey.create(Registries.BIOME, ResourceLocation.fromNamespaceAndPath(MountainGiantMod.MODID, "roaming_grounds"));
+    /** Biomes it may cross but won't settle in (rivers running through its plains). */
+    public static final TagKey<Biome> PASSABLE_GROUNDS =
+            TagKey.create(Registries.BIOME, ResourceLocation.fromNamespaceAndPath(MountainGiantMod.MODID, "passable_grounds"));
     /** Natural ground: may be kept and climbed when it is one block above the feet. Everything else in the way breaks. */
     public static final TagKey<Block> TERRAIN =
             TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(MountainGiantMod.MODID, "giant_terrain"));
@@ -169,8 +172,17 @@ public class MountainGiant extends Monster implements GeoEntity {
     /** Built blocks and logs sometimes fly off as debris instead of just breaking. */
     private static final float DEBRIS_CHANCE = 0.2F;
     private static final int DEBRIS_PER_TICK = 5;
-    /** Water columns (of ~48 checked ahead) that make a lake or river rather than a pond or a ditch. */
-    private static final int LAKE_WATER_COLUMNS = 20;
+    /** Water deeper than this (blocks) is a lake or the sea: it turns back. Rivers and ponds are waded through. */
+    private static final int DEEP_WATER = 6;
+    /** Deep-water columns (of ~48 checked ahead) that make it turn back. */
+    private static final int DEEP_WATER_COLUMNS = 12;
+    /** A wall or house smash hurts bystanders at this share of a real attack. */
+    private static final float COLLATERAL_SMASH = 0.4F;
+    /** Standing by a foot when it comes down. */
+    private static final float STOMP_DAMAGE = 4.0F;
+    private static final double STOMP_RADIUS = 3.0;
+    /** Summoned (not natural) giants fade into mist after this long in daylight without a fight. */
+    private static final int DAY_CALM_TICKS = 2400;
 
     // ---- combat ----
     private static final double AGGRO_RANGE = 64.0;
@@ -227,8 +239,7 @@ public class MountainGiant extends Monster implements GeoEntity {
 
     // dawn departure
     private boolean naturalSpawn;
-    @Nullable
-    private Boolean wasNight;
+    private int dayCalmTicks;
     private boolean leaving;
     private boolean vanishing;
     private int leavingTicks;
@@ -411,7 +422,7 @@ public class MountainGiant extends Monster implements GeoEntity {
         LivingEntity target = getTarget();
         if (target != null) {
             this.turningBack = false;
-            if (waterAhead()) {
+            if (deepWaterAhead()) {
                 loseTarget();
                 turnBack();
                 return 0.0;
@@ -423,8 +434,8 @@ public class MountainGiant extends Monster implements GeoEntity {
             }
         } else if (this.leaving) {
             setFog(Math.min(FOG_LEAVING, getFog() + 0.005F));
-            if (++this.leavingTicks > LEAVE_TIMEOUT || !isRoamingGround(position())
-                    || !isRoamingGround(aheadPoint()) || waterAhead()) {
+            if (++this.leavingTicks > LEAVE_TIMEOUT || !isHomeGround(position())
+                    || !isHomeGround(aheadPoint()) || deepWaterAhead()) {
                 startVanishing();
                 return VANISH_SPEED;
             }
@@ -536,10 +547,10 @@ public class MountainGiant extends Monster implements GeoEntity {
         return true;
     }
 
-    /** The plains end (when it is on them) or there is a lake just ahead. */
+    /** Its ground ends (when it is on it) or there is deep water just ahead. */
     private boolean blockedAhead() {
-        boolean plainsEdge = isRoamingGround(position()) && !isRoamingGround(aheadPoint());
-        return plainsEdge || waterAhead();
+        boolean edge = isHomeGround(position()) && !isHomeGround(aheadPoint());
+        return edge || deepWaterAhead();
     }
 
     private void turnBack() {
@@ -554,19 +565,21 @@ public class MountainGiant extends Monster implements GeoEntity {
         return position().add(forward().scale(HALF_WIDTH + 6.0));
     }
 
-    private boolean isRoamingGround(Vec3 pos) {
-        return level().getBiome(BlockPos.containing(pos)).is(ROAMING_GROUNDS);
+    /** Where it roams (plains, snowy plains, meadows) plus what it may cross on the way (rivers). */
+    private boolean isHomeGround(Vec3 pos) {
+        var biome = level().getBiome(BlockPos.containing(pos));
+        return biome.is(ROAMING_GROUNDS) || biome.is(PASSABLE_GROUNDS);
     }
 
     /**
-     * A lake or river where the next steps would land. A village pond, a well or a field ditch is just stepped over:
-     * only a good share of water across the ground ahead (8 wide, 6 deep) counts.
+     * A lake or the sea where the next steps would land. Rivers, ponds and ditches are waded through;
+     * only a good share of water deeper than {@link #DEEP_WATER} across the ground ahead (8 wide, 6 deep) counts.
      */
-    private boolean waterAhead() {
+    private boolean deepWaterAhead() {
         Vec3 fwd = forward();
         Vec3 right = new Vec3(-fwd.z, 0.0, fwd.x);
         int feetY = feetY();
-        int water = 0;
+        int deep = 0;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (double along = HALF_WIDTH + 1.0; along <= HALF_WIDTH + 6.0; along += 1.0) {
             for (double side = -HALF_WIDTH; side <= HALF_WIDTH; side += 1.0) {
@@ -576,7 +589,7 @@ public class MountainGiant extends Monster implements GeoEntity {
                 for (int dy = 0; dy < 5; dy++, pos.move(0, -1, 0)) {
                     BlockState state = level().getBlockState(pos);
                     if (!state.getFluidState().isEmpty()) {
-                        if (++water >= LAKE_WATER_COLUMNS) {
+                        if (waterDepth(pos) > DEEP_WATER && ++deep >= DEEP_WATER_COLUMNS) {
                             return true;
                         }
                         break;
@@ -588,6 +601,17 @@ public class MountainGiant extends Monster implements GeoEntity {
             }
         }
         return false;
+    }
+
+    /** How many blocks of liquid there are from here down (stops counting a little past {@link #DEEP_WATER}). */
+    private int waterDepth(BlockPos surface) {
+        BlockPos.MutableBlockPos pos = surface.mutable();
+        int depth = 0;
+        while (depth <= DEEP_WATER && !level().getFluidState(pos).isEmpty()) {
+            depth++;
+            pos.move(0, -1, 0);
+        }
+        return depth;
     }
 
     /** If the giant barely moved for 3 seconds while trying to walk, turn around. */
@@ -696,16 +720,22 @@ public class MountainGiant extends Monster implements GeoEntity {
     }
 
     /**
-     * Naturally spawned giants belong to the night and leave whenever it is day.
-     * Others (spawn egg, commands) leave when they see night turn into day.
+     * Naturally spawned giants belong to the night: at daybreak they walk off to the edge of their ground.
+     * Summoned ones (spawn egg, commands) fade into mist after two quiet minutes of daylight.
      */
     private void watchForDawn() {
-        boolean night = isNight(level());
-        if (!this.leaving && !night
-                && (this.naturalSpawn || (this.wasNight != null && this.wasNight))) {
-            startLeaving();
+        if (this.leaving || isNight(level())) {
+            this.dayCalmTicks = 0;
+            return;
         }
-        this.wasNight = night;
+        if (this.naturalSpawn) {
+            startLeaving();
+        } else if (getTarget() != null) {
+            this.dayCalmTicks = 0; // still fighting
+        } else if (++this.dayCalmTicks >= DAY_CALM_TICKS) {
+            startLeaving();
+            this.leavingTicks = LEAVE_TIMEOUT - 200; // the mist rises for ten seconds, then it goes
+        }
     }
 
     public void startLeaving() {
@@ -785,7 +815,7 @@ public class MountainGiant extends Monster implements GeoEntity {
         double dist = horizontalDistanceTo(target);
         boolean forgotten = this.tickCount - getLastHurtByMobTimestamp() > AGGRO_MEMORY && dist > AGGRO_MEMORY_RANGE;
         if (!isValidTarget(target) || target.level() != level() || dist > AGGRO_RANGE || forgotten
-                || !isRoamingGround(target.position())) {
+                || !isHomeGround(target.position())) {
             loseTarget();
             this.desiredHeading = this.heading;
             playSound(SoundEvents.RAVAGER_AMBIENT, 4.0F, 0.35F);
@@ -890,7 +920,8 @@ public class MountainGiant extends Monster implements GeoEntity {
             server.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, ground),
                     hit.x, hit.y + 0.5, hit.z, 150, 3.0, 0.8, 3.0, 0.4);
         }
-        damageAround(server, hit);
+        // a real attack hits full force; bystanders of a wall or house smash get a lighter knock
+        damageAround(server, hit, this.smashIsAttack ? 1.0F : COLLATERAL_SMASH);
         if (EventHooks.canEntityGrief(level(), this)) {
             trample(-HALF_WIDTH, HALF_WIDTH + SMASH_REACH);
         }
@@ -901,10 +932,10 @@ public class MountainGiant extends Monster implements GeoEntity {
     }
 
     /** Everything near the fists gets hurt and thrown back; closer means harder. */
-    private void damageAround(ServerLevel server, Vec3 hit) {
-        float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE);
+    private void damageAround(ServerLevel server, Vec3 hit, float scale) {
+        float damage = (float) getAttributeValue(Attributes.ATTACK_DAMAGE) * scale;
         AABB area = new AABB(hit, hit).inflate(SMASH_HIT_RADIUS, 3.0, SMASH_HIT_RADIUS).expandTowards(0, 4.0, 0);
-        for (LivingEntity victim : server.getEntitiesOfClass(LivingEntity.class, area, e -> e != this && e.isAlive())) {
+        for (LivingEntity victim : server.getEntitiesOfClass(LivingEntity.class, area, this::canBeCrushed)) {
             double dist = Math.sqrt(victim.distanceToSqr(hit.x, victim.getY(), hit.z));
             if (dist > SMASH_HIT_RADIUS) {
                 continue;
@@ -1143,6 +1174,48 @@ public class MountainGiant extends Monster implements GeoEntity {
         server.playSound(null, foot.x, getY(), foot.z, SoundEvents.RAVAGER_STEP, getSoundSource(), 4.0F * solidity, 0.35F);
         server.playSound(null, foot.x, getY(), foot.z, SoundEvents.IRON_GOLEM_STEP, getSoundSource(), 3.0F * solidity, 0.5F);
         level().broadcastEntityEvent(this, EVENT_FOOTSTEP);
+        if (solidity > 0.5F) {
+            stomp(server, foot);
+        }
+    }
+
+    /** Whatever stands by the foot as it comes down takes a knock; wading, it throws up spray. */
+    private void stomp(ServerLevel server, Vec3 foot) {
+        AABB area = new AABB(foot.x - STOMP_RADIUS, getY() - 1.0, foot.z - STOMP_RADIUS,
+                foot.x + STOMP_RADIUS, getY() + 3.0, foot.z + STOMP_RADIUS);
+        for (LivingEntity victim : server.getEntitiesOfClass(LivingEntity.class, area, this::canBeCrushed)) {
+            double dx = victim.getX() - foot.x;
+            double dz = victim.getZ() - foot.z;
+            double dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist > STOMP_RADIUS) {
+                continue;
+            }
+            if (victim.hurt(damageSources().mobAttack(this), STOMP_DAMAGE)) {
+                double strength = 0.5 * (1.0 - victim.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
+                double nx = dist < 1.0E-3 ? 0.0 : dx / dist;
+                double nz = dist < 1.0E-3 ? 0.0 : dz / dist;
+                victim.push(nx * strength, 0.3 * strength + 0.1, nz * strength);
+                victim.hurtMarked = true;
+            }
+        }
+        BlockPos.MutableBlockPos water = BlockPos.containing(foot.x, getY() + 0.2, foot.z).mutable();
+        if (!server.getFluidState(water).isEmpty()) {
+            while (!server.getFluidState(water.above()).isEmpty() && water.getY() < getY() + DEEP_WATER + 2) {
+                water.move(0, 1, 0);
+            }
+            double surface = water.getY() + 1.0;
+            server.sendParticles(ParticleTypes.SPLASH, foot.x, surface, foot.z, 80, 2.0, 0.2, 2.0, 0.5);
+            server.sendParticles(ParticleTypes.BUBBLE_POP, foot.x, surface, foot.z, 20, 1.5, 0.1, 1.5, 0.1);
+            server.playSound(null, foot.x, surface, foot.z, SoundEvents.GENERIC_SPLASH, getSoundSource(), 2.5F, 0.5F);
+        }
+    }
+
+    /** Anything alive near the giant can be crushed, except other giants and players in creative / spectator. */
+    private boolean canBeCrushed(LivingEntity entity) {
+        if (entity == this || !entity.isAlive() || entity instanceof MountainGiant) {
+            return false;
+        }
+        return !(entity instanceof Player player) || (!player.isCreative() && !player.isSpectator());
     }
 
     // =================================================================================
@@ -1278,6 +1351,7 @@ public class MountainGiant extends Monster implements GeoEntity {
         tag.putFloat("Fog", getFog());
         tag.putInt("OreTier", getOreTier());
         tag.putInt("EmergeTicks", this.emergeTicks);
+        tag.putInt("DayCalmTicks", this.dayCalmTicks);
     }
 
     @Override
@@ -1294,6 +1368,7 @@ public class MountainGiant extends Monster implements GeoEntity {
         this.entityData.set(DATA_FOG, tag.getFloat("Fog"));
         this.entityData.set(DATA_ORE_TIER, tag.getInt("OreTier"));
         this.emergeTicks = tag.getInt("EmergeTicks");
+        this.dayCalmTicks = tag.getInt("DayCalmTicks");
         if (hasCustomName()) {
             this.bossEvent.setName(getDisplayName());
         }

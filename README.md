@@ -16,16 +16,18 @@ managed to knock off it.
 ## The giant
 
 **There is only one.** A world never has more than one Mountain Giant at a time. It turns up on about one night in
-three, some time between late evening and the small hours, on flat, dry plains 48 to 96 blocks from a player. You'll
-hear it about ten seconds before you see it.
+three, some time between late evening and the small hours, somewhere fairly level and dry 48 to 96 blocks from a
+player: plains, snowy plains or a meadow. You'll hear it about ten seconds before you see it.
 
-**It isn't looking for you.** The giant is neutral. It walks, it tramples, and when it reaches the edge of the plains or
-a lake it stops, looks around, and turns back. Leave it alone and it will leave you alone.
+**It isn't looking for you.** The giant is neutral. It walks, it tramples, and when it reaches the edge of its plains or
+deep water it stops, looks around, and turns back. Leave it alone and it will leave you alone. Just don't stand next to
+its feet: every step lands hard enough to hurt.
 
 **It flattens things.** Everything in a 28-block-wide corridor gets pushed over: trees, fences, crops, walls. Gentle
 slopes it just walks up. Real hills get a pass cut through them, climbing one block every eight. Houses and rock walls
-get both fists brought down on them first, and the debris goes flying. A village pond or a ditch doesn't stop it; a
-river does. Roughly 7% of what it breaks drops as items.
+get both fists brought down on them first, and the debris goes flying (along with anyone standing too close). Rivers
+and ponds up to six blocks deep it wades straight through; lakes and the sea turn it back. Roughly 7% of what it breaks
+drops as items.
 
 ![Walk cycle](docs/images/walk.png)
 
@@ -98,8 +100,8 @@ For operators, mostly for testing:
 - `/mountaingiant omen` starts the tremors near you and brings the giant in, skipping the nightly roll.
 - `/mountaingiant status` shows whether a giant is out, whether tonight rolled one, and the time of day.
 
-The spawn egg is in the creative Spawn Eggs tab. Giants from the egg don't count against the one-per-world limit, and
-they stay until they've seen a night end.
+The spawn egg is in the creative Spawn Eggs tab. Giants from the egg don't count against the one-per-world limit. In
+daylight, once nobody has hit them for two minutes, they fade into the mist too.
 
 ## Installing
 
@@ -131,6 +133,7 @@ its 3×3 digging. They take about a minute.
 ## 中文简介
 
 山岭巨人是一个 NeoForge 1.21.1 模组。某些夜晚，大地会先颤动，远处传来脚步声，随后一个 28 格高的石头巨人从雾中站起，
-沿直线穿过平原，把挡路的树木、房屋和山坡一路踏平，天亮时走进雾里消失。它平时不主动攻击，被打了才会追击和砸拳。
+沿直线穿过平原，把挡路的树木、房屋和山坡一路踏平，浅河直接蹚过，天亮时走进雾里消失。它平时不主动攻击，被打了才会追击和砸拳，
+但站在它脚边或者砸拳的落点附近也会被波及。
 巨人每损失 10% 的血量就会掉落一批粗铜或粗铁，击败后掉落 10 颗钻石和山岭之心。山岭之心可以合成山岭巨锤：
 它既是武器也是镐，一次挖 3×3，还能蓄力砸地放出三圈冲击波。

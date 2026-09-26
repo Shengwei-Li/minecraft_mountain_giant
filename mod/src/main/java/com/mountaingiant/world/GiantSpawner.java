@@ -46,8 +46,9 @@ public final class GiantSpawner {
     private static final double OMEN_RANGE = 160.0;
     private static final int MIN_DISTANCE = 48;
     private static final int MAX_DISTANCE = 96;
-    /** Largest height difference allowed around the spawn point. */
-    private static final int MAX_UNEVENNESS = 3;
+    /** Largest height difference of the ground (trees ignored) within {@link #FLAT_RADIUS} of the spawn point. */
+    private static final int MAX_UNEVENNESS = 6;
+    private static final double FLAT_RADIUS = 12.0;
 
     // the omen in progress (not saved: a restart simply cancels it)
     @Nullable
@@ -74,15 +75,13 @@ public final class GiantSpawner {
             return;
         }
         long time = level.getDayTime() % 24000L;
-        if (time < WINDOW_START || time >= WINDOW_END) {
-            return;
-        }
+        boolean inWindow = time >= WINDOW_START && time < WINDOW_END;
         GiantWorldData data = GiantWorldData.get(level);
-        long day = level.getDayTime() / 24000L;
-        if (data.getRolledDay() != day) {
-            data.setRoll(day, level.random.nextFloat() < NIGHTLY_CHANCE);
+        // one roll each time the window opens (this also works when the time is changed with /time set)
+        if (data.updateWindow(inWindow)) {
+            data.setSpawnTonight(level.random.nextFloat() < NIGHTLY_CHANCE);
         }
-        if (!data.isSpawnTonight() || data.hasGiant(level.getGameTime())) {
+        if (!inWindow || !data.isSpawnTonight() || data.hasGiant(level.getGameTime())) {
             return;
         }
         List<ServerPlayer> players = level.players().stream().filter(p -> !p.isSpectator()).toList();
@@ -116,25 +115,40 @@ public final class GiantSpawner {
         return null;
     }
 
+    /**
+     * The block above the natural ground at x/z, looking through trees, logs, plants and snow layers.
+     * Null if the chunk isn't loaded or the ground is under water.
+     */
     @Nullable
     private static BlockPos groundAt(ServerLevel level, int x, int z) {
         if (!level.hasChunk(x >> 4, z >> 4)) {
             return null;
         }
-        return new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x,
+                level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1, z);
+        for (int i = 0; i < 24 && pos.getY() > level.getMinBuildHeight(); i++, pos.move(0, -1, 0)) {
+            if (!level.getFluidState(pos).isEmpty()) {
+                return null;
+            }
+            if (level.getBlockState(pos).is(MountainGiant.TERRAIN)) {
+                return pos.above().immutable();
+            }
+        }
+        return null;
     }
 
-    private static boolean isGoodSpot(ServerLevel level, BlockPos spot) {
+    /** Roaming ground, dry, and no more than {@link #MAX_UNEVENNESS} blocks up and down nearby (trees don't count). */
+    public static boolean isGoodSpot(ServerLevel level, BlockPos spot) {
         if (!level.getBiome(spot).is(MountainGiant.ROAMING_GROUNDS)) {
             return false;
         }
         int min = spot.getY();
         int max = spot.getY();
         for (int i = 0; i < 9; i++) {
-            BlockPos p = i == 0 ? spot : groundAt(level,
-                    spot.getX() + Mth.floor(Mth.cos(i * Mth.TWO_PI / 8) * 10.0),
-                    spot.getZ() + Mth.floor(Mth.sin(i * Mth.TWO_PI / 8) * 10.0));
-            if (p == null || !level.getFluidState(p.below()).isEmpty() || !level.getFluidState(p).isEmpty()) {
+            BlockPos p = i == 0 ? groundAt(level, spot.getX(), spot.getZ()) : groundAt(level,
+                    spot.getX() + Mth.floor(Mth.cos(i * Mth.TWO_PI / 8) * FLAT_RADIUS),
+                    spot.getZ() + Mth.floor(Mth.sin(i * Mth.TWO_PI / 8) * FLAT_RADIUS));
+            if (p == null) {
                 return false;
             }
             min = Math.min(min, p.getY());
@@ -196,7 +210,7 @@ public final class GiantSpawner {
         level.addFreshEntity(giant);
         GiantWorldData data = GiantWorldData.get(level);
         data.claim(giant.getUUID(), level.getGameTime());
-        data.setRoll(level.getDayTime() / 24000L, false); // one visit per night
+        data.setSpawnTonight(false); // one visit per night
         return giant;
     }
 
@@ -237,8 +251,7 @@ public final class GiantSpawner {
                 .then(Commands.literal("status").executes(ctx -> {
                     ServerLevel level = ctx.getSource().getServer().overworld();
                     GiantWorldData data = GiantWorldData.get(level);
-                    long day = level.getDayTime() / 24000L;
-                    String tonight = data.getRolledDay() == day ? String.valueOf(data.isSpawnTonight()) : "?";
+                    String tonight = data.isInWindow() ? String.valueOf(data.isSpawnTonight()) : "-";
                     ctx.getSource().sendSuccess(() -> Component.translatable("command.mountain_giant.status",
                             data.hasGiant(level.getGameTime()) ? String.valueOf(data.getGiant()) : "-",
                             tonight, level.getDayTime() % 24000L), false);

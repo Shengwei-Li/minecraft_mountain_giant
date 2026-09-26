@@ -46,8 +46,13 @@ public class GiantGameTests {
 
     /** Builds a stone floor (and clears the air above it), keeping the chunks around it ticking. */
     private static BlockPos prepareArena(GameTestHelper helper, int radius) {
+        return prepareArena(helper, radius, 0);
+    }
+
+    /** Same, with the floor raised {@code lift} blocks so there is room to dig water basins under it. */
+    private static BlockPos prepareArena(GameTestHelper helper, int radius, int lift) {
         ServerLevel level = helper.getLevel();
-        BlockPos origin = helper.absolutePos(new BlockPos(0, 1, 0));
+        BlockPos origin = helper.absolutePos(new BlockPos(0, 1 + lift, 0));
         // the test world only ticks the test's own chunk; keep the whole walking area loaded
         int cx = origin.getX() >> 4, cz = origin.getZ() >> 4;
         int chunks = (radius >> 4) + 1;
@@ -65,7 +70,10 @@ public class GiantGameTests {
         level.getEntitiesOfClass(FallingBlockEntity.class, new AABB(origin).inflate(radius + 16)).forEach(Entity::discard);
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
-                level.setBlock(origin.offset(x, -1, z), Blocks.STONE.defaultBlockState(), 2);
+                // a raised arena stands on solid ground, like the real world (water basins can't drain out of it)
+                for (int y = -lift - 1; y <= -1; y++) {
+                    level.setBlock(origin.offset(x, y, z), Blocks.STONE.defaultBlockState(), 2);
+                }
                 for (int y = 0; y < 26; y++) {
                     level.setBlock(origin.offset(x, y, z), Blocks.AIR.defaultBlockState(), 2);
                 }
@@ -248,31 +256,67 @@ public class GiantGameTests {
                 : null);
     }
 
-    @GameTest(template = "empty", timeoutTicks = 800, batch = "water")
-    public static void giantTurnsBackAtWater(GameTestHelper helper) {
-        ServerLevel level = helper.getLevel();
-        BlockPos origin = prepareArena(helper, 40);
-        // a moat all around, 14 to 24 blocks out
-        for (int x = -24; x <= 24; x++) {
-            for (int z = -24; z <= 24; z++) {
+    /** A ring of water {@code depth} deep between the two radii, in a stone basin under the arena floor. */
+    private static void buildMoat(ServerLevel level, BlockPos origin, double inner, double outer, int depth) {
+        int r = (int) outer + 2;
+        for (int x = -r; x <= r; x++) {
+            for (int z = -r; z <= r; z++) {
                 double d = Math.sqrt(x * x + z * z);
-                if (d >= 14.0 && d < 24.0) {
-                    level.setBlock(origin.offset(x, -2, z), Blocks.STONE.defaultBlockState(), 2);
-                    level.setBlock(origin.offset(x, -1, z), Blocks.WATER.defaultBlockState(), 2);
+                if (d >= inner - 1.0 && d < outer + 1.0) {
+                    for (int y = -depth - 1; y <= -1; y++) {
+                        level.setBlock(origin.offset(x, y, z), Blocks.STONE.defaultBlockState(), 2);
+                    }
                 }
             }
         }
+        for (int x = -r; x <= r; x++) {
+            for (int z = -r; z <= r; z++) {
+                double d = Math.sqrt(x * x + z * z);
+                if (d >= inner && d < outer) {
+                    for (int y = -depth; y <= -1; y++) {
+                        level.setBlock(origin.offset(x, y, z), Blocks.WATER.defaultBlockState(), 2);
+                    }
+                }
+            }
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 800, batch = "water")
+    public static void giantTurnsBackAtDeepWater(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 40, 12);
+        buildMoat(level, origin, 14.0, 24.0, 8); // a lake: deeper than it wades
         MountainGiant giant = spawnGiant(helper, origin);
         Vec3 start = giant.position();
         double[] farthest = {0.0};
         helper.onEachTick(() -> farthest[0] = Math.max(farthest[0], giant.position().distanceTo(start)));
         helper.runAfterDelay(760, () -> {
-            LOG.info("[giant-test] water: farthest {} blocks from start (moat at 14), in water: {}",
+            LOG.info("[giant-test] deep water: farthest {} blocks from start (lake at 14), in water: {}",
                     farthest[0], giant.isInWater());
             if (farthest[0] > 12.0 || giant.isInWater()) {
-                helper.fail("giant walked into the water");
+                helper.fail("giant walked into the deep water");
             } else if (farthest[0] < 4.0) {
                 helper.fail("giant did not walk at all");
+            } else {
+                helper.succeed();
+            }
+        });
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 900, batch = "wade")
+    public static void giantWadesThroughShallowWater(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 44, 6);
+        // a river sixteen blocks wide and three deep (a narrower one it simply steps across)
+        buildMoat(level, origin, 14.0, 30.0, 3);
+        MountainGiant giant = spawnGiant(helper, origin);
+        double[] reach = trackReach(helper, giant);
+        boolean[] wet = {false};
+        helper.onEachTick(() -> wet[0] |= giant.isInWater());
+        helper.runAfterDelay(860, () -> {
+            LOG.info("[giant-test] wade: reach {} (river from 14 to 30), got wet {}", reach[0], wet[0]);
+            if (!wet[0] || reach[0] < 34.0) {
+                helper.fail("giant should wade across the shallow river, reached " + reach[0]);
             } else {
                 helper.succeed();
             }
@@ -632,6 +676,71 @@ public class GiantGameTests {
             helper.fail("sneaking should break a single block, left " + secondLeft);
         } else if (!shieldFirst || !sneakSlams) {
             helper.fail("shield / sneak right click handling is wrong");
+        } else {
+            helper.succeed();
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 500, batch = "stomp")
+    public static void standingByItsFeetHurts(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 30);
+        // a ring of husks it has to walk through (husks: zombies would burn in the test world's daylight)
+        java.util.List<Husk> bystanders = new java.util.ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            double a = i * Math.PI * 2.0 / 24.0;
+            Husk husk = EntityType.HUSK.create(level);
+            husk.moveTo(origin.getX() + 0.5 + Math.cos(a) * 8.0, origin.getY(), origin.getZ() + 0.5 + Math.sin(a) * 8.0,
+                    0.0F, 0.0F);
+            husk.setNoAi(true);
+            level.addFreshEntity(husk);
+            bystanders.add(husk);
+        }
+        MountainGiant giant = spawnGiant(helper, origin);
+        helper.runAfterDelay(460, () -> {
+            int hurt = 0;
+            float worst = 0.0F;
+            for (Husk husk : bystanders) {
+                float lost = husk.getMaxHealth() - husk.getHealth();
+                if (lost > 0.0F || !husk.isAlive()) {
+                    hurt++;
+                }
+                worst = Math.max(worst, husk.isAlive() ? lost : husk.getMaxHealth());
+            }
+            LOG.info("[giant-test] stomp: {} of {} bystanders hurt, worst loss {}", hurt, bystanders.size(), worst);
+            if (hurt == 0) {
+                helper.fail("walking through a crowd hurt nobody");
+            } else if (worst > 8.5F) {
+                helper.fail("stomping is meant to be a light knock, worst loss " + worst);
+            } else {
+                helper.succeed();
+            }
+        });
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20, batch = "spot")
+    public static void spawnSpotToleratesRollingGroundAndTrees(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 20);
+        // a tree right by the spot, and gentle bumps up to 5 high: still fine
+        for (int y = 0; y < 7; y++) {
+            level.setBlock(origin.offset(4, y, 0), Blocks.OAK_LOG.defaultBlockState(), 2);
+        }
+        for (int y = 0; y < 5; y++) {
+            level.setBlock(origin.offset(0, y, 12), Blocks.DIRT.defaultBlockState(), 2);
+        }
+        boolean rolling = GiantSpawner.isGoodSpot(level, origin);
+        // a cliff 9 high a dozen blocks away: too rough
+        for (int y = 0; y < 9; y++) {
+            level.setBlock(origin.offset(12, y, 0), Blocks.STONE.defaultBlockState(), 2);
+        }
+        boolean cliff = GiantSpawner.isGoodSpot(level, origin);
+        LOG.info("[giant-test] spot: rolling ground with a tree ok={}, next to a cliff ok={} (biome {})", rolling, cliff,
+                level.getBiome(origin).unwrapKey().map(k -> k.location().toString()).orElse("?"));
+        if (!rolling) {
+            helper.fail("gentle bumps and a tree should not rule the spot out");
+        } else if (cliff) {
+            helper.fail("a 9-high cliff should rule the spot out");
         } else {
             helper.succeed();
         }

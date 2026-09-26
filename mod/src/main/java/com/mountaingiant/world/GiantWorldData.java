@@ -21,8 +21,8 @@ public class GiantWorldData extends SavedData {
     @Nullable
     private UUID giant;
     private long lastSeen;
-    /** Day number whose spawn roll has already been made. */
-    private long rolledDay = -1;
+    /** Whether the last check was inside the night-time spawn window (a new window means a new roll). */
+    private boolean inWindow;
     /** Whether tonight's roll said a giant should come. */
     private boolean spawnTonight;
 
@@ -38,7 +38,7 @@ public class GiantWorldData extends SavedData {
             data.giant = tag.getUUID("Giant");
         }
         data.lastSeen = tag.getLong("LastSeen");
-        data.rolledDay = tag.getLong("RolledDay");
+        data.inWindow = tag.getBoolean("InWindow");
         data.spawnTonight = tag.getBoolean("SpawnTonight");
         return data;
     }
@@ -49,7 +49,7 @@ public class GiantWorldData extends SavedData {
             tag.putUUID("Giant", this.giant);
         }
         tag.putLong("LastSeen", this.lastSeen);
-        tag.putLong("RolledDay", this.rolledDay);
+        tag.putBoolean("InWindow", this.inWindow);
         tag.putBoolean("SpawnTonight", this.spawnTonight);
         return tag;
     }
@@ -82,16 +82,25 @@ public class GiantWorldData extends SavedData {
         }
     }
 
-    public long getRolledDay() {
-        return this.rolledDay;
+    public boolean isInWindow() {
+        return this.inWindow;
+    }
+
+    /** Records whether we are inside the spawn window; returns true when the window has just opened. */
+    public boolean updateWindow(boolean inWindow) {
+        boolean opened = inWindow && !this.inWindow;
+        if (inWindow != this.inWindow) {
+            this.inWindow = inWindow;
+            setDirty();
+        }
+        return opened;
     }
 
     public boolean isSpawnTonight() {
         return this.spawnTonight;
     }
 
-    public void setRoll(long day, boolean spawn) {
-        this.rolledDay = day;
+    public void setSpawnTonight(boolean spawn) {
         this.spawnTonight = spawn;
         setDirty();
     }
