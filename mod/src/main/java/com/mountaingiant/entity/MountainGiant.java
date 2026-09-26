@@ -151,14 +151,19 @@ public class MountainGiant extends Monster implements GeoEntity {
     private static final int CLEAR_HEIGHT = 32;
     /** Solid blocks (3+ above the feet, leaves excluded, body width) in the look-ahead zone that make it smash. */
     private static final int SMASH_THRESHOLD = 90;
-    /** A rise of this many blocks within the next ~13 blocks counts as a real hill: carve a pass instead of climbing. */
-    private static final int HILL_RISE = 3;
+    /**
+     * A rise of this many blocks within the next ~13 blocks counts as a real hill: carve a pass instead of climbing.
+     * (A 1-in-6 slope already rises 2-3 blocks over that distance and should just be walked up.)
+     */
+    private static final int HILL_RISE = 4;
     /** While carving a pass the road climbs at most one block per this many blocks walked. */
     private static final double PASS_GRADE = 8.0;
     private static final int BREAK_BUDGET_WALK = 96;
     private static final int BREAK_BUDGET_SMASH = 200;
     /** Built blocks (planks, cobble, glass...) right in front that make it smash a house instead of walking through it. */
-    private static final int STRUCTURE_THRESHOLD = 24;
+    private static final int STRUCTURE_THRESHOLD = 16;
+    /** After smashing a house it walks on for this long before another house can make it stop (no smash loops). */
+    private static final int STRUCTURE_SMASH_GRACE = 40;
     /** Chance that a trampled block drops its item. */
     private static final float TRAMPLE_DROP_CHANCE = 0.07F;
     /** Built blocks and logs sometimes fly off as debris instead of just breaking. */
@@ -198,6 +203,7 @@ public class MountainGiant extends Monster implements GeoEntity {
     private int attackCooldown;
     private int nextDriftTick;
     private int nextAngryRoarTick;
+    private int nextStructureSmashTick;
     private boolean turningBack;
     private double strideDistance;
     private boolean rightFootNext;
@@ -432,8 +438,12 @@ public class MountainGiant extends Monster implements GeoEntity {
         if (EventHooks.canEntityGrief(level(), this) && this.tickCount % 4 == 0) {
             this.carving = riseAhead() >= HILL_RISE;
             // a big wall or a house gets smashed with the fists; anything smaller is simply trampled
-            if (countWall() >= SMASH_THRESHOLD || countStructure() >= STRUCTURE_THRESHOLD) {
+            boolean house = this.tickCount >= this.nextStructureSmashTick && countStructure() >= STRUCTURE_THRESHOLD;
+            if (house || countWall() >= SMASH_THRESHOLD) {
                 startSmash(false);
+                if (house) {
+                    this.nextStructureSmashTick = this.tickCount + SMASH_TICKS + STRUCTURE_SMASH_GRACE;
+                }
                 return 0.0;
             }
             // the front of the corridor every time; the whole corridor now and then (it may have turned)

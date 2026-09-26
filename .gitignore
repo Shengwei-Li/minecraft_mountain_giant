@@ -12,3 +12,9 @@ mod/repo/
 mod/.idea/
 mod/*.iml
 mod/out/
+
+# local-only files
+*.jar
+!mod/gradle/wrapper/*.jar
+diamond_hammer.png
+ChatGPT Image*

@@ -2,11 +2,11 @@ package com.mountaingiant.item;
 
 import com.mountaingiant.world.Shockwave;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -21,20 +21,25 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.ItemAbilities;
+import net.neoforged.neoforge.common.ItemAbility;
 
 import java.util.List;
 
 /**
  * The Mountain Hammer, made from the giant's heart.
- * Left click: a heavy blow. Hold right click to raise it overhead, release to slam the ground:
- * a shockwave rolls out in three rings (see {@link Shockwave}).
+ * Left click: a heavy blow, and it digs like the best pickaxe there is, three by three (see {@code AreaMining}).
+ * Hold right click to raise it overhead, release to slam the ground: a shockwave rolls out in three rings
+ * (see {@link Shockwave}). With a shield in the off hand, right click blocks and sneak + right click slams.
  */
 public class MountainHammerItem extends Item {
     /** Total attack damage 11 (1 base + 10), attack speed 1.0 (4 base - 3). */
     private static final double ATTACK_DAMAGE_BONUS = 10.0;
     private static final double ATTACK_SPEED_MODIFIER = -3.0;
+    /** Netherite pickaxes dig at 9. */
+    public static final float MINING_SPEED = 12.0F;
     /** Ticks it must be held up before a release slams (1 second). */
     public static final int MIN_CHARGE = 20;
     public static final int SLAM_COOLDOWN = 100;
@@ -53,6 +58,18 @@ public class MountainHammerItem extends Item {
                 .build();
     }
 
+    /** Digs everything a netherite pickaxe can (with drops), faster. Shovel and axe blocks stay at hand speed. */
+    public static Tool createTool() {
+        return new Tool(List.of(
+                Tool.Rule.deniesDrops(BlockTags.INCORRECT_FOR_NETHERITE_TOOL),
+                Tool.Rule.minesAndDrops(BlockTags.MINEABLE_WITH_PICKAXE, MINING_SPEED)), 1.0F, 1);
+    }
+
+    @Override
+    public boolean canPerformAction(ItemStack stack, ItemAbility ability) {
+        return ItemAbilities.DEFAULT_PICKAXE_ACTIONS.contains(ability);
+    }
+
     // ---- left click ----------------------------------------------------------------
 
     @Override
@@ -63,11 +80,6 @@ public class MountainHammerItem extends Item {
     @Override
     public void postHurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
         stack.hurtAndBreak(1, attacker, EquipmentSlot.MAINHAND);
-    }
-
-    @Override
-    public boolean canAttackBlock(BlockState state, Level level, BlockPos pos, Player player) {
-        return !player.isCreative(); // like a sword: swinging it in creative doesn't break blocks
     }
 
     // ---- right click: charge and slam ---------------------------------------------
@@ -84,6 +96,11 @@ public class MountainHammerItem extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        // a shield in the other hand keeps plain right click for blocking; sneak to slam instead
+        if (hand == InteractionHand.MAIN_HAND && !player.isShiftKeyDown()
+                && player.getOffhandItem().canPerformAction(ItemAbilities.SHIELD_BLOCK)) {
+            return InteractionResultHolder.pass(player.getItemInHand(hand));
+        }
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
@@ -126,6 +143,8 @@ public class MountainHammerItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("item.mountain_giant.mountain_hammer.desc").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("item.mountain_giant.mountain_hammer.mine").withStyle(ChatFormatting.GOLD));
         tooltip.add(Component.translatable("item.mountain_giant.mountain_hammer.slam").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.translatable("item.mountain_giant.mountain_hammer.shield").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

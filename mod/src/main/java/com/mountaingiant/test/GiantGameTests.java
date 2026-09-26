@@ -1,5 +1,6 @@
 package com.mountaingiant.test;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.logging.LogUtils;
 import com.mountaingiant.MountainGiantMod;
 import com.mountaingiant.entity.MountainGiant;
@@ -13,6 +14,9 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
@@ -26,6 +30,7 @@ import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
@@ -50,6 +55,10 @@ public class GiantGameTests {
             for (int z = cz - chunks; z <= cz + chunks; z++) {
                 level.setChunkForced(x, z, true);
             }
+        }
+        // giants from earlier tests keep wandering the test world and would trample this arena
+        for (MountainGiant old : level.getEntities(ModEntities.MOUNTAIN_GIANT.get(), e -> true)) {
+            old.discard();
         }
         // leftovers of earlier tests on the same spot (loot, debris)
         level.getEntitiesOfClass(ItemEntity.class, new AABB(origin).inflate(radius + 16)).forEach(Entity::discard);
@@ -165,6 +174,9 @@ public class GiantGameTests {
     private record ValleyResult(double maxRise, double reach, int kept, int total) {
     }
 
+    /** Only the inner part of the valley is counted: at the rim the giant steps off the arena. */
+    private static final int COUNTED_RADIUS = 30;
+
     private static void valleyTest(GameTestHelper helper, int run, int maxHeight, Function<ValleyResult, String> check) {
         ServerLevel level = helper.getLevel();
         BlockPos origin = prepareArena(helper, 44);
@@ -175,7 +187,9 @@ public class GiantGameTests {
                 for (int y = 0; y < h; y++) {
                     level.setBlock(origin.offset(x, y, z),
                             (y == h - 1 ? Blocks.GRASS_BLOCK : Blocks.DIRT).defaultBlockState(), 2);
-                    placed++;
+                    if (x * x + z * z <= COUNTED_RADIUS * COUNTED_RADIUS) {
+                        placed++;
+                    }
                 }
             }
         }
@@ -196,6 +210,9 @@ public class GiantGameTests {
             int left = 0;
             for (int x = -40; x <= 40; x++) {
                 for (int z = -40; z <= 40; z++) {
+                    if (x * x + z * z > COUNTED_RADIUS * COUNTED_RADIUS) {
+                        continue;
+                    }
                     for (int y = 0; y < maxHeight; y++) {
                         if (!level.getBlockState(origin.offset(x, y, z)).isAir()) {
                             left++;
@@ -540,6 +557,81 @@ public class GiantGameTests {
         LOG.info("[giant-test] hammer recipe loaded: {}", recipe.isPresent());
         if (recipe.isEmpty()) {
             helper.fail("hammer recipe missing");
+        } else {
+            helper.succeed();
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 40, batch = "mining")
+    public static void hammerDigsThreeByThree(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 12);
+        ItemStack hammer = new ItemStack(ModItems.MOUNTAIN_HAMMER.get());
+
+        // how it digs: faster than netherite on stone, can take obsidian, no help on dirt (no shovel work)
+        float stoneSpeed = hammer.getDestroySpeed(Blocks.STONE.defaultBlockState());
+        float dirtSpeed = hammer.getDestroySpeed(Blocks.DIRT.defaultBlockState());
+        boolean obsidian = hammer.isCorrectToolForDrops(Blocks.OBSIDIAN.defaultBlockState());
+
+        // two 3x3 stone walls facing the player (+Z); the first has an obsidian block in one corner
+        BlockPos first = origin.offset(0, 2, 4);
+        BlockPos second = origin.offset(6, 2, 4);
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                level.setBlock(first.offset(a, b, 0), Blocks.STONE.defaultBlockState(), 3);
+                level.setBlock(second.offset(a, b, 0), Blocks.STONE.defaultBlockState(), 3);
+            }
+        }
+        level.setBlock(first.offset(1, 1, 0), Blocks.OBSIDIAN.defaultBlockState(), 3);
+
+        // a fake player: unlike the vanilla mock player it never joins the world's player list,
+        // which would wake up natural spawning and disturb the other tests
+        ServerPlayer player = FakePlayerFactory.get(level, new GameProfile(UUID.randomUUID(), "hammer-test"));
+        player.setItemInHand(InteractionHand.MAIN_HAND, hammer);
+        // stand 3 blocks in front of each wall, eyes level with its centre, looking straight at it
+        player.moveTo(first.getX() + 0.5, first.getY() + 0.5 - player.getEyeHeight(), first.getZ() - 2.5, 0.0F, 0.0F);
+        player.gameMode.destroyBlock(first);
+        int firstLeft = 0;
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                if (!level.getBlockState(first.offset(a, b, 0)).isAir()) {
+                    firstLeft++;
+                }
+            }
+        }
+        boolean obsidianKept = level.getBlockState(first.offset(1, 1, 0)).is(Blocks.OBSIDIAN);
+
+        player.setShiftKeyDown(true);
+        player.moveTo(second.getX() + 0.5, second.getY() + 0.5 - player.getEyeHeight(), second.getZ() - 2.5, 0.0F, 0.0F);
+        player.gameMode.destroyBlock(second);
+        int secondLeft = 0;
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                if (!level.getBlockState(second.offset(a, b, 0)).isAir()) {
+                    secondLeft++;
+                }
+            }
+        }
+
+        // with a shield in the off hand, plain right click is left to the shield
+        player.setShiftKeyDown(false);
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.SHIELD));
+        boolean shieldFirst = !hammer.use(level, player, InteractionHand.MAIN_HAND).getResult().consumesAction();
+        player.setShiftKeyDown(true);
+        boolean sneakSlams = hammer.use(level, player, InteractionHand.MAIN_HAND).getResult().consumesAction();
+        player.stopUsingItem();
+
+        LOG.info("[giant-test] mining: speed stone {} dirt {}, obsidian ok {}, 3x3 left {} (obsidian kept {}), "
+                        + "sneaking left {}, shield first {}, sneak slams {}",
+                stoneSpeed, dirtSpeed, obsidian, firstLeft, obsidianKept, secondLeft, shieldFirst, sneakSlams);
+        if (stoneSpeed < 12.0F || dirtSpeed > 1.0F || !obsidian) {
+            helper.fail("wrong mining power");
+        } else if (firstLeft != 1 || !obsidianKept) {
+            helper.fail("3x3 should clear the stone and leave the harder obsidian, left " + firstLeft);
+        } else if (secondLeft != 8) {
+            helper.fail("sneaking should break a single block, left " + secondLeft);
+        } else if (!shieldFirst || !sneakSlams) {
+            helper.fail("shield / sneak right click handling is wrong");
         } else {
             helper.succeed();
         }

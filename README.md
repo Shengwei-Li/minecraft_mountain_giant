@@ -73,12 +73,18 @@ between two iron blocks, with mossy cobblestone either side of a stick below and
 |---|---|
 | Attack damage | 11 |
 | Attack speed | 1.0 |
+| Mining | Everything a netherite pickaxe can dig, at speed 12 (netherite is 9) |
 | Durability | 2031, repaired with iron blocks |
-| Enchantments | Sharpness, Fire Aspect, Unbreaking, Mending, and the rest of the usual weapon ones |
+| Enchantments | Sharpness, Fire Aspect, Efficiency, Fortune, Silk Touch, Unbreaking, Mending |
+
+**Three by three.** It digs a 3×3 square across whatever face you hit. Blocks harder than the one you aimed at are left
+alone, so hitting stone won't take the obsidian next to it. Sneak to dig a single block.
 
 **Giant's Slam.** Hold right click to lift the hammer over your head. After a second it locks in with a heavy clunk.
 Let go and it comes down: a shockwave rolls out in three rings, hitting for about 12 within 3 blocks, 9 out to 5.5, and
 6 out to 8, throwing everything outward. It doesn't hurt you and doesn't break blocks. Five seconds between slams.
+
+With a shield in your off hand, right click raises the shield as usual and sneak + right click winds up the slam.
 
 ## Advancements
 
@@ -117,23 +123,8 @@ gradlew runGameTestServer
 ```
 
 The game tests run the giant through a flat field, a stone ring, a moat, scattered ponds, a hill, a ring of houses and a
-forest, check the chase, the ore tiers, the arm hitboxes, the dawn exit, natural spawning, and the hammer's shockwave.
-They take about a minute.
-
-## How the art is made
-
-Nothing here was painted by hand. The giant's 123 cubes, its 2048×896 texture and its five animations come out of
-`tools/gen_giant.py`, which writes a Blockbench project. The hammer, its textures and both inventory icons come out of
-`tools/gen_hammer.py`. `tools/export_geckolib.py` turns the giant into GeckoLib files, and `tools/preview.py` is a small
-software renderer that produced every picture on this page.
-
-```
-python tools/gen_giant.py && python tools/export_geckolib.py
-python tools/gen_hammer.py
-```
-
-The `.bbmodel` files open in Blockbench if you'd rather push cubes around yourself. The generators will overwrite your
-changes the next time they run.
+forest, check the chase, the ore tiers, the arm hitboxes, the dawn exit, natural spawning, the hammer's shockwave and
+its 3×3 digging. They take about a minute.
 
 ---
 
@@ -141,4 +132,5 @@ changes the next time they run.
 
 山岭巨人是一个 NeoForge 1.21.1 模组。某些夜晚，大地会先颤动，远处传来脚步声，随后一个 28 格高的石头巨人从雾中站起，
 沿直线穿过平原，把挡路的树木、房屋和山坡一路踏平，天亮时走进雾里消失。它平时不主动攻击，被打了才会追击和砸拳。
-巨人每损失 10% 的血量就会掉落一批粗铜或粗铁，击败后掉落 10 颗钻石和山岭之心，山岭之心可以合成带蓄力砸地技能的山岭巨锤。
+巨人每损失 10% 的血量就会掉落一批粗铜或粗铁，击败后掉落 10 颗钻石和山岭之心。山岭之心可以合成山岭巨锤：
+它既是武器也是镐，一次挖 3×3，还能蓄力砸地放出三圈冲击波。

@@ -2,6 +2,7 @@ package com.mountaingiant.registry;
 
 import com.mountaingiant.MountainGiantMod;
 import com.mountaingiant.item.MountainHammerItem;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.neoforged.neoforge.common.DeferredSpawnEggItem;
@@ -25,7 +26,8 @@ public final class ModItems {
                     .durability(2031)
                     .rarity(Rarity.EPIC)
                     .fireResistant()
-                    .attributes(MountainHammerItem.createAttributes())));
+                    .attributes(MountainHammerItem.createAttributes())
+                    .component(DataComponents.TOOL, MountainHammerItem.createTool())));
 
     private ModItems() {
     }
