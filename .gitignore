@@ -18,3 +18,5 @@ mod/out/
 !mod/gradle/wrapper/*.jar
 diamond_hammer.png
 ChatGPT Image*
+/armor.png
+/plate.png

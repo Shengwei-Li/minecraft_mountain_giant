@@ -52,7 +52,7 @@ off its body and scatters on the ground. You can see the gaps where it was.
 | 10% | 30 raw copper |
 | 20% | 20 raw iron |
 | 30% to 90% | 10 raw iron each time |
-| Killed | 10 diamonds and the Mountain Heart |
+| Killed | 10 diamonds, the Mountain Heart and 2 Mountain Plates |
 
 The ten-notch boss bar lines up with those tiers.
 
@@ -87,6 +87,25 @@ Let go and it comes down: a shockwave rolls out in three rings, hitting for abou
 6 out to 8, throwing everything outward. It doesn't hurt you and doesn't break blocks. Five seconds between slams.
 
 With a shield in your off hand, right click raises the shield as usual and sneak + right click winds up the slam.
+
+## Mountain armour
+
+![Mountain armour on a stand](docs/images/armor.png)
+
+![Inventory icons: helmet, chestplate, leggings, boots, Mountain Plate](docs/images/armor_icons.png)
+
+Each giant sheds two Mountain Plates: slabs of its mossy, gold-veined hide. On a smithing table, a plate in the
+template slot, a piece of netherite armour and a gold ingot make the Mountain version of that piece. Enchantments and
+wear carry over. Two giants' worth of plates is a full set.
+
+| | Netherite | Mountain |
+|---|---|---|
+| Armour (helmet / chest / legs / boots) | 3 / 8 / 6 / 3 = 20 | 4 / 9 / 7 / 4 = 24 |
+| Toughness per piece | 3 | 3.5 |
+| Knockback resistance per piece | 0.1 | 0.15 |
+| Durability | | about 15% more |
+
+**Full set:** nothing knocks you back. You stand like the giant does.
 
 ## Advancements
 
@@ -136,4 +155,5 @@ its 3×3 digging. They take about a minute.
 沿直线穿过平原，把挡路的树木、房屋和山坡一路踏平，浅河直接蹚过，天亮时走进雾里消失。它平时不主动攻击，被打了才会追击和砸拳，
 但站在它脚边或者砸拳的落点附近也会被波及。
 巨人每损失 10% 的血量就会掉落一批粗铜或粗铁，击败后掉落 10 颗钻石和山岭之心。山岭之心可以合成山岭巨锤：
-它既是武器也是镐，一次挖 3×3，还能蓄力砸地放出三圈冲击波。
+它既是武器也是镐，一次挖 3×3，还能蓄力砸地放出三圈冲击波。巨人还会掉落 2 块山岭石甲片，在锻造台上把下界合金盔甲升级成山岭盔甲，
+穿齐整套可以免疫击退。

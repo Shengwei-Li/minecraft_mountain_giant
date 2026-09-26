@@ -161,6 +161,7 @@ def render(quads, yaw, pitch, size=560, span=150, center_y=52):
             ui = np.clip(u.astype(int), 0, TEX.shape[1] - 1)
             vi = np.clip(v.astype(int), 0, TEX.shape[0] - 1)
             col = TEX[vi, ui, :3] * shade
+            m &= TEX[vi, ui, 3] > 127  # transparent texels (armour openings) let what's behind show
             sub[m] = z[m]
             img[y0:y1 + 1, x0:x1 + 1][m] = col[m]
     return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8))

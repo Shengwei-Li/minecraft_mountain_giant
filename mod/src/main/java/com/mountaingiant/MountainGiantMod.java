@@ -2,6 +2,7 @@ package com.mountaingiant;
 
 import com.mountaingiant.entity.MountainGiant;
 import com.mountaingiant.network.TremorPayload;
+import com.mountaingiant.registry.ModArmorMaterials;
 import com.mountaingiant.registry.ModEntities;
 import com.mountaingiant.registry.ModItems;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -15,6 +16,7 @@ public class MountainGiantMod {
     public static final String MODID = "mountain_giant";
 
     public MountainGiantMod(IEventBus modBus) {
+        ModArmorMaterials.MATERIALS.register(modBus);
         ModEntities.ENTITIES.register(modBus);
         ModItems.ITEMS.register(modBus);
         modBus.addListener(this::registerAttributes);
@@ -31,8 +33,13 @@ public class MountainGiantMod {
             event.accept(ModItems.MOUNTAIN_GIANT_SPAWN_EGG.get());
         } else if (event.getTabKey() == CreativeModeTabs.COMBAT) {
             event.accept(ModItems.MOUNTAIN_HAMMER.get());
+            event.accept(ModItems.MOUNTAIN_HELMET.get());
+            event.accept(ModItems.MOUNTAIN_CHESTPLATE.get());
+            event.accept(ModItems.MOUNTAIN_LEGGINGS.get());
+            event.accept(ModItems.MOUNTAIN_BOOTS.get());
         } else if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             event.accept(ModItems.MOUNTAIN_HEART.get());
+            event.accept(ModItems.MOUNTAIN_PLATE.get());
         }
     }
 }

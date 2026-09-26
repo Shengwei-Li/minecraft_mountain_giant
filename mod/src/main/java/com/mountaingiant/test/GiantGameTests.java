@@ -535,6 +535,7 @@ public class GiantGameTests {
         helper.runAfterDelay(300, () -> {
             int hearts = 0;
             int diamonds = 0;
+            int plates = 0;
             for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, new AABB(origin).inflate(40))) {
                 if (item.getItem().is(ModItems.MOUNTAIN_HEART.get())) {
                     hearts += item.getItem().getCount();
@@ -542,13 +543,16 @@ public class GiantGameTests {
                 if (item.getItem().is(Items.DIAMOND)) {
                     diamonds += item.getItem().getCount();
                 }
+                if (item.getItem().is(ModItems.MOUNTAIN_PLATE.get())) {
+                    plates += item.getItem().getCount();
+                }
             }
-            LOG.info("[giant-test] spawn: after death recorded={} hearts={} diamonds={}",
-                    data.hasGiant(level.getGameTime()), hearts, diamonds);
+            LOG.info("[giant-test] spawn: after death recorded={} hearts={} diamonds={} plates={}",
+                    data.hasGiant(level.getGameTime()), hearts, diamonds, plates);
             if (data.hasGiant(level.getGameTime())) {
                 helper.fail("dead giant still blocks new ones");
-            } else if (hearts != 1 || diamonds != 10) {
-                helper.fail("expected 1 heart and 10 diamonds, got " + hearts + " / " + diamonds);
+            } else if (hearts != 1 || diamonds != 10 || plates != 2) {
+                helper.fail("expected 1 heart, 10 diamonds, 2 plates, got " + hearts + " / " + diamonds + " / " + plates);
             } else {
                 helper.succeed();
             }
@@ -744,5 +748,62 @@ public class GiantGameTests {
         } else {
             helper.succeed();
         }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20, batch = "armor")
+    public static void mountainArmorUpgradesAndStandsFirm(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 8);
+
+        // smithing table: plate (template slot) + netherite piece + gold ingot, enchantments carried over
+        net.minecraft.world.item.ItemStack netheriteHelmet = new ItemStack(Items.NETHERITE_HELMET);
+        netheriteHelmet.setDamageValue(17);
+        var input = new net.minecraft.world.item.crafting.SmithingRecipeInput(
+                new ItemStack(ModItems.MOUNTAIN_PLATE.get()), netheriteHelmet, new ItemStack(Items.GOLD_INGOT));
+        var recipe = level.getRecipeManager().getRecipeFor(net.minecraft.world.item.crafting.RecipeType.SMITHING, input, level);
+        ItemStack upgraded = recipe.map(r -> r.value().assemble(input, level.registryAccess())).orElse(ItemStack.EMPTY);
+
+        int[] defense = {
+                ((net.minecraft.world.item.ArmorItem) ModItems.MOUNTAIN_HELMET.get()).getDefense(),
+                ((net.minecraft.world.item.ArmorItem) ModItems.MOUNTAIN_CHESTPLATE.get()).getDefense(),
+                ((net.minecraft.world.item.ArmorItem) ModItems.MOUNTAIN_LEGGINGS.get()).getDefense(),
+                ((net.minecraft.world.item.ArmorItem) ModItems.MOUNTAIN_BOOTS.get()).getDefense()};
+        int total = defense[0] + defense[1] + defense[2] + defense[3];
+
+        // one husk in the full set, one in plain clothes; both get the same shove
+        Husk armoured = EntityType.HUSK.create(level);
+        Husk plain = EntityType.HUSK.create(level);
+        for (Husk husk : new Husk[]{armoured, plain}) {
+            husk.moveTo(origin.getX() + 0.5, origin.getY(), origin.getZ() + 0.5, 0.0F, 0.0F);
+            husk.setNoAi(true);
+            level.addFreshEntity(husk);
+        }
+        armoured.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(ModItems.MOUNTAIN_HELMET.get()));
+        armoured.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(ModItems.MOUNTAIN_CHESTPLATE.get()));
+        armoured.setItemSlot(net.minecraft.world.entity.EquipmentSlot.LEGS, new ItemStack(ModItems.MOUNTAIN_LEGGINGS.get()));
+        armoured.setItemSlot(net.minecraft.world.entity.EquipmentSlot.FEET, new ItemStack(ModItems.MOUNTAIN_BOOTS.get()));
+        armoured.knockback(1.5, 1.0, 0.0);
+        plain.knockback(1.5, 1.0, 0.0);
+        double pushedArmoured = armoured.getDeltaMovement().horizontalDistance();
+        double pushedPlain = plain.getDeltaMovement().horizontalDistance();
+
+        // worn armour only counts once the entity has ticked with it on
+        helper.runAfterDelay(3, () -> {
+            LOG.info("[giant-test] armor: upgrade -> {} (damage {}), defense {}/{}/{}/{} = {}, armour value {}, "
+                            + "knockback full set {} vs none {}",
+                    upgraded.getItem(), upgraded.getDamageValue(), defense[0], defense[1], defense[2], defense[3], total,
+                    armoured.getArmorValue() - plain.getArmorValue(), pushedArmoured, pushedPlain);
+            if (!upgraded.is(ModItems.MOUNTAIN_HELMET.get()) || upgraded.getDamageValue() != 17) {
+                helper.fail("netherite helmet + plate + gold should become a Mountain Helmet, keeping its wear");
+            } else if (total != 24 || armoured.getArmorValue() - plain.getArmorValue() != 24) {
+                // (husks have 2 armour of their own)
+                helper.fail("the set should add 24 armour, got " + total + " / "
+                        + (armoured.getArmorValue() - plain.getArmorValue()));
+            } else if (pushedArmoured > 1.0E-6 || pushedPlain < 0.1) {
+                helper.fail("the full set should stop knockback");
+            } else {
+                helper.succeed();
+            }
+        });
     }
 }
