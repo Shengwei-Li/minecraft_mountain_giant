@@ -34,6 +34,7 @@ MODEL_FILE = take_option("--model", "mountain_giant.bbmodel")
 SPAN = float(take_option("--span", "160"))
 CENTER_Y = float(take_option("--center", "52"))
 OUT_NAME = take_option("--out", "view")
+PIVOT = [float(v) for v in take_option("--pivot", "0,0").split(",")]  # x,z the view turns around
 model = json.load(open(os.path.join(ROOT, MODEL_FILE), encoding="utf-8"))
 t0 = model["textures"][0]
 TEX = np.asarray(Image.open(io.BytesIO(base64.b64decode(t0["source"].split(",", 1)[1]))).convert("RGBA")).astype(np.float32)
@@ -131,7 +132,7 @@ def render(quads, yaw, pitch, size=560, span=150, center_y=52):
             continue
         n /= nl
         shade = 1.0 if emis else 0.55 + 0.45 * max(0.0, float(n @ light)) + 0.1 * max(0.0, float(-n @ light))
-        cp = (V @ pts.T).T
+        cp = (V @ (pts - np.array([PIVOT[0], 0.0, PIVOT[1]])).T).T
         sx = size / 2 + cp[:, 0] * s
         sy = size / 2 - (cp[:, 1] - center_y) * s
         for tri in ((0, 1, 2), (0, 2, 3)):

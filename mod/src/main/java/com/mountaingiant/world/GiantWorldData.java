@@ -25,6 +25,8 @@ public class GiantWorldData extends SavedData {
     private boolean inWindow;
     /** Whether tonight's roll said a giant should come. */
     private boolean spawnTonight;
+    /** Nights in a row that passed without a giant; each one makes the next night likelier. */
+    private int quietNights;
 
     public static GiantWorldData get(ServerLevel level) {
         ServerLevel overworld = level.getServer().overworld();
@@ -40,6 +42,7 @@ public class GiantWorldData extends SavedData {
         data.lastSeen = tag.getLong("LastSeen");
         data.inWindow = tag.getBoolean("InWindow");
         data.spawnTonight = tag.getBoolean("SpawnTonight");
+        data.quietNights = tag.getInt("QuietNights");
         return data;
     }
 
@@ -51,6 +54,7 @@ public class GiantWorldData extends SavedData {
         tag.putLong("LastSeen", this.lastSeen);
         tag.putBoolean("InWindow", this.inWindow);
         tag.putBoolean("SpawnTonight", this.spawnTonight);
+        tag.putInt("QuietNights", this.quietNights);
         return tag;
     }
 
@@ -102,6 +106,15 @@ public class GiantWorldData extends SavedData {
 
     public void setSpawnTonight(boolean spawn) {
         this.spawnTonight = spawn;
+        setDirty();
+    }
+
+    public int getQuietNights() {
+        return this.quietNights;
+    }
+
+    public void setQuietNights(int nights) {
+        this.quietNights = nights;
         setDirty();
     }
 }

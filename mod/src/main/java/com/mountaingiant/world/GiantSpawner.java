@@ -36,8 +36,11 @@ import java.util.List;
  */
 @EventBusSubscriber(modid = MountainGiantMod.MODID)
 public final class GiantSpawner {
-    /** Chance that a given night has a giant at all. */
-    public static final float NIGHTLY_CHANCE = 0.35F;
+    /**
+     * Chance that a night has a giant, by how many nights in a row have passed without one:
+     * 35% at first, then likelier each quiet night, and certain on the fourth. Back to 35% once it has come.
+     */
+    private static final float[] NIGHTLY_CHANCE = {0.35F, 0.55F, 0.75F, 1.0F};
     /** Night-time window (day time ticks) in which it may appear: roughly 21:00 to 02:00. */
     public static final long WINDOW_START = 15000L;
     public static final long WINDOW_END = 20000L;
@@ -47,7 +50,7 @@ public final class GiantSpawner {
     private static final int MIN_DISTANCE = 48;
     private static final int MAX_DISTANCE = 96;
     /** Largest height difference of the ground (trees ignored) within {@link #FLAT_RADIUS} of the spawn point. */
-    private static final int MAX_UNEVENNESS = 6;
+    private static final int MAX_UNEVENNESS = 8;
     private static final double FLAT_RADIUS = 12.0;
 
     // the omen in progress (not saved: a restart simply cancels it)
@@ -78,8 +81,11 @@ public final class GiantSpawner {
         boolean inWindow = time >= WINDOW_START && time < WINDOW_END;
         GiantWorldData data = GiantWorldData.get(level);
         // one roll each time the window opens (this also works when the time is changed with /time set)
-        if (data.updateWindow(inWindow)) {
-            data.setSpawnTonight(level.random.nextFloat() < NIGHTLY_CHANCE);
+        if (data.updateWindow(inWindow) && !data.hasGiant(level.getGameTime())) {
+            int quiet = data.getQuietNights();
+            data.setSpawnTonight(level.random.nextFloat() < NIGHTLY_CHANCE[Math.min(quiet, NIGHTLY_CHANCE.length - 1)]);
+            // counts as a quiet night unless a giant actually turns up (spawnAt resets it)
+            data.setQuietNights(quiet + 1);
         }
         if (!inWindow || !data.isSpawnTonight() || data.hasGiant(level.getGameTime())) {
             return;
@@ -211,6 +217,7 @@ public final class GiantSpawner {
         GiantWorldData data = GiantWorldData.get(level);
         data.claim(giant.getUUID(), level.getGameTime());
         data.setSpawnTonight(false); // one visit per night
+        data.setQuietNights(0);
         return giant;
     }
 
@@ -254,7 +261,7 @@ public final class GiantSpawner {
                     String tonight = data.isInWindow() ? String.valueOf(data.isSpawnTonight()) : "-";
                     ctx.getSource().sendSuccess(() -> Component.translatable("command.mountain_giant.status",
                             data.hasGiant(level.getGameTime()) ? String.valueOf(data.getGiant()) : "-",
-                            tonight, level.getDayTime() % 24000L), false);
+                            tonight, data.getQuietNights(), level.getDayTime() % 24000L), false);
                     return 1;
                 })));
     }

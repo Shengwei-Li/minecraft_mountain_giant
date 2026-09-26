@@ -22,5 +22,5 @@
   "command.mountain_giant.already": "A Mountain Giant already walks this world.",
   "command.mountain_giant.no_spot": "No flat, dry plains within 48-96 blocks of you.",
   "command.mountain_giant.omen": "The ground begins to tremble near %s, %s, %s.",
-  "command.mountain_giant.status": "Giant: %s | tonight: %s | time of day: %s"
+  "command.mountain_giant.status": "Giant: %s | tonight: %s | quiet nights: %s | time of day: %s"
 }

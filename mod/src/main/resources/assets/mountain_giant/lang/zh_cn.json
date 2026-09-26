@@ -22,5 +22,5 @@
   "command.mountain_giant.already": "这个世界已经有一只山岭巨人了。",
   "command.mountain_giant.no_spot": "你周围 48-96 格内没有平坦干燥的平原。",
   "command.mountain_giant.omen": "%s, %s, %s 附近的大地开始颤动。",
-  "command.mountain_giant.status": "巨人：%s | 今晚：%s | 当前时间：%s"
+  "command.mountain_giant.status": "巨人：%s | 今晚：%s | 连续未出现：%s 晚 | 当前时间：%s"
 }
