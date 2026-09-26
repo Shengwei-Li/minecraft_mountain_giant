@@ -1,0 +1,26 @@
+{
+ "loader": "neoforge:separate_transforms",
+ "base": {
+  "parent": "mountain_giant:item/mountain_horn_3d"
+ },
+ "perspectives": {
+  "gui": {
+   "parent": "minecraft:item/generated",
+   "textures": {
+    "layer0": "mountain_giant:item/mountain_horn_icon"
+   }
+  },
+  "ground": {
+   "parent": "minecraft:item/generated",
+   "textures": {
+    "layer0": "mountain_giant:item/mountain_horn_icon"
+   }
+  },
+  "fixed": {
+   "parent": "minecraft:item/generated",
+   "textures": {
+    "layer0": "mountain_giant:item/mountain_horn_icon"
+   }
+  }
+ }
+}

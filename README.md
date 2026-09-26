@@ -16,7 +16,8 @@ managed to knock off it.
 ## The giant
 
 **There is only one.** A world never has more than one Mountain Giant at a time. It turns up on about one night in
-three, some time between late evening and the small hours, somewhere fairly level and dry 48 to 96 blocks from a
+three, and never stays away long: every quiet night makes the next one likelier, and by the fourth it comes for
+certain. It arrives some time between late evening and the small hours, somewhere fairly level and dry 48 to 96 blocks from a
 player: plains, snowy plains or a meadow. You'll hear it about ten seconds before you see it.
 
 **It isn't looking for you.** The giant is neutral. It walks, it tramples, and when it reaches the edge of its plains or
@@ -39,6 +40,18 @@ When it does reach you, it smashes the ground in front of it for up to 20 damage
 
 **At dawn it leaves.** It walks to the edge of the plains, the mist comes up, and it fades out. No drops, no corpse.
 If you want what it's carrying, you have until sunrise.
+
+## The Mountain Horn
+
+![The Mountain Horn, and its inventory icon](docs/images/horn.png)
+
+Don't feel like waiting? Four gold blocks in the corners, mossy cobblestone on the sides and a goat horn in the middle
+make a Mountain Horn. Blow it deep in the night (roughly 21:00 to 02:00) and the ground answers the same way it does on
+its own: tremors, distant footsteps, and then the giant rising out of the mist about 80 blocks away. It prefers its
+plains, but if there are none nearby any flat, dry ground will do. Come dawn it leaves as usual.
+
+The horn is never used up. Once a giant has answered, it needs a full day's rest before it will call again. It won't
+call a second giant while one is still out there, and during the day nothing answers at all.
 
 ## Taking it apart
 
@@ -117,7 +130,8 @@ wear carry over. Two giants' worth of plates is a full set.
 For operators, mostly for testing:
 
 - `/mountaingiant omen` starts the tremors near you and brings the giant in, skipping the nightly roll.
-- `/mountaingiant status` shows whether a giant is out, whether tonight rolled one, and the time of day.
+- `/mountaingiant status` shows whether a giant is out, whether tonight rolled one, how many nights in a row have been
+  quiet, and the time of day.
 
 The spawn egg is in the creative Spawn Eggs tab. Giants from the egg don't count against the one-per-world limit. In
 daylight, once nobody has hit them for two minutes, they fade into the mist too.
@@ -157,3 +171,5 @@ its 3×3 digging. They take about a minute.
 巨人每损失 10% 的血量就会掉落一批粗铜或粗铁，击败后掉落 10 颗钻石和山岭之心。山岭之心可以合成山岭巨锤：
 它既是武器也是镐，一次挖 3×3，还能蓄力砸地放出三圈冲击波。巨人还会掉落 2 块山岭石甲片，在锻造台上把下界合金盔甲升级成山岭盔甲，
 穿齐整套可以免疫击退。
+巨人大约每三晚来一次，连续几晚没来时出现的概率会逐渐升高，最多四晚内必定出现。不想等的话，可以用四个金块、四个苔石和一个山羊角
+合成山岭号角，深夜（约 21 点到凌晨 2 点）吹响，巨人会在 80 格外从雾中升起。号角不会消耗，召唤成功后需要歇息一天。

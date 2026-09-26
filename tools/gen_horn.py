@@ -239,10 +239,11 @@ icon_img = horn_icon()
 # Display transforms
 # ---------------------------------------------------------------------------
 DISPLAY = {
-    "thirdperson_righthand": {"rotation": [0, -90, 25], "translation": [0, 4, 1], "scale": [0.55, 0.55, 0.55]},
-    "thirdperson_lefthand": {"rotation": [0, 90, -25], "translation": [0, 4, 1], "scale": [0.55, 0.55, 0.55]},
-    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.1, 3.2, 1.1], "scale": [0.5, 0.5, 0.5]},
-    "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.1, 3.2, 1.1], "scale": [0.5, 0.5, 0.5]},
+    # held by the middle, mouthpiece towards the player, bell pointing forward and curling up
+    "thirdperson_righthand": {"rotation": [0, 90, 90], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
+    "thirdperson_lefthand": {"rotation": [0, -90, -90], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
+    "firstperson_righthand": {"rotation": [0, 90, 0], "translation": [1.1, 3.2, 1.1], "scale": [0.5, 0.5, 0.5]},
+    "firstperson_lefthand": {"rotation": [0, -90, 0], "translation": [1.1, 3.2, 1.1], "scale": [0.5, 0.5, 0.5]},
     "gui": {"rotation": [20, -30, 0], "translation": [0, 0, 0], "scale": [0.6, 0.6, 0.6]},
     "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.4, 0.4, 0.4]},
     "fixed": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [0.7, 0.7, 0.7]},

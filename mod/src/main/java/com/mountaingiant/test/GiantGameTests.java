@@ -806,4 +806,60 @@ public class GiantGameTests {
             }
         });
     }
+
+    @GameTest(template = "empty", timeoutTicks = 20, batch = "horn")
+    public static void hornCallsTheGiantOnlyAtNight(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = prepareArena(helper, 8);
+        // the horn looks ~80 blocks out: keep that ring of ground loaded
+        int cx = origin.getX() >> 4, cz = origin.getZ() >> 4;
+        for (int x = cx - 6; x <= cx + 6; x++) {
+            for (int z = cz - 6; z <= cz + 6; z++) {
+                level.setChunkForced(x, z, true);
+            }
+        }
+        GiantSpawner.cancelOmen();
+        long dayTime = level.getDayTime();
+        ServerPlayer player = FakePlayerFactory.get(level, new GameProfile(UUID.randomUUID(), "horn-test"));
+        player.moveTo(origin.getX() + 0.5, origin.getY(), origin.getZ() + 0.5, 0.0F, 0.0F);
+
+        level.setDayTime(dayTime - dayTime % 24000L + 6000L); // noon
+        boolean noon = com.mountaingiant.item.MountainHornItem.call(level, player);
+        boolean noonOmen = GiantSpawner.isOmenActive();
+        level.setDayTime(dayTime - dayTime % 24000L + 18000L); // midnight
+        boolean night = com.mountaingiant.item.MountainHornItem.call(level, player);
+        boolean nightOmen = GiantSpawner.isOmenActive();
+        boolean again = com.mountaingiant.item.MountainHornItem.call(level, player);
+        GiantSpawner.cancelOmen(); // don't let a giant rise into the other tests
+        level.setDayTime(dayTime);
+
+        LOG.info("[giant-test] horn: noon answered={} omen={}, midnight answered={} omen={}, second call answered={}",
+                noon, noonOmen, night, nightOmen, again);
+        if (noon || noonOmen) {
+            helper.fail("the horn should not work at noon");
+        } else if (!night || !nightOmen) {
+            helper.fail("the horn should call a giant at midnight");
+        } else if (again) {
+            helper.fail("a second call while the first is on its way should be refused");
+        } else {
+            helper.succeed();
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 20, batch = "horn")
+    public static void hornRecipe(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ItemStack gold = new ItemStack(Items.GOLD_BLOCK);
+        ItemStack moss = new ItemStack(Items.MOSSY_COBBLESTONE);
+        var input = net.minecraft.world.item.crafting.CraftingInput.of(3, 3, java.util.List.of(
+                gold, moss, gold, moss, new ItemStack(Items.GOAT_HORN), moss, gold, moss, gold));
+        ItemStack result = level.getRecipeManager()
+                .getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, input, level)
+                .map(r -> r.value().assemble(input, level.registryAccess())).orElse(ItemStack.EMPTY);
+        if (result.is(ModItems.MOUNTAIN_HORN.get())) {
+            helper.succeed();
+        } else {
+            helper.fail("gold blocks, mossy cobblestone and a goat horn should make a Mountain Horn, got " + result);
+        }
+    }
 }

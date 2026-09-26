@@ -3,6 +3,7 @@ package com.mountaingiant.registry;
 import com.mountaingiant.MountainGiantMod;
 import com.mountaingiant.item.MountainArmorItem;
 import com.mountaingiant.item.MountainHammerItem;
+import com.mountaingiant.item.MountainHornItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.Item;
@@ -34,6 +35,10 @@ public final class ModItems {
     /** Two per slain giant: a slab of its mossy, gold-veined hide. Upgrades netherite armour. */
     public static final DeferredItem<Item> MOUNTAIN_PLATE = ITEMS.register("mountain_plate", () -> new Item(
             new Item.Properties().rarity(Rarity.RARE).fireResistant()));
+
+    /** Blown at night, it calls the giant. Never used up. */
+    public static final DeferredItem<MountainHornItem> MOUNTAIN_HORN = ITEMS.register("mountain_horn",
+            () -> new MountainHornItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
     public static final DeferredItem<MountainArmorItem> MOUNTAIN_HELMET = armor("mountain_helmet", ArmorItem.Type.HELMET);
     public static final DeferredItem<MountainArmorItem> MOUNTAIN_CHESTPLATE = armor("mountain_chestplate", ArmorItem.Type.CHESTPLATE);

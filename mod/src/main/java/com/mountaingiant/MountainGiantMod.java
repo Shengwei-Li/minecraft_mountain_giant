@@ -31,6 +31,8 @@ public class MountainGiantMod {
     private void addCreativeTabItems(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
             event.accept(ModItems.MOUNTAIN_GIANT_SPAWN_EGG.get());
+        } else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.MOUNTAIN_HORN.get());
         } else if (event.getTabKey() == CreativeModeTabs.COMBAT) {
             event.accept(ModItems.MOUNTAIN_HAMMER.get());
             event.accept(ModItems.MOUNTAIN_HELMET.get());

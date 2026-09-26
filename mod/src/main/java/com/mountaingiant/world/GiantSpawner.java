@@ -52,11 +52,15 @@ public final class GiantSpawner {
     /** Largest height difference of the ground (trees ignored) within {@link #FLAT_RADIUS} of the spawn point. */
     private static final int MAX_UNEVENNESS = 8;
     private static final double FLAT_RADIUS = 12.0;
+    /** How far away a giant called by the horn appears. */
+    private static final int HORN_DISTANCE = 80;
 
     // the omen in progress (not saved: a restart simply cancels it)
     @Nullable
     private static BlockPos omenPos;
     private static int omenTicks;
+    /** Called by the horn: any flat dry land will do, not only the giant's own plains. */
+    private static boolean omenAnyGround;
 
     private GiantSpawner() {
     }
@@ -77,8 +81,7 @@ public final class GiantSpawner {
         if (level.getGameTime() % ATTEMPT_INTERVAL != 0 || !spawningAllowed(level)) {
             return;
         }
-        long time = level.getDayTime() % 24000L;
-        boolean inWindow = time >= WINDOW_START && time < WINDOW_END;
+        boolean inWindow = isGiantHour(level);
         GiantWorldData data = GiantWorldData.get(level);
         // one roll each time the window opens (this also works when the time is changed with /time set)
         if (data.updateWindow(inWindow) && !data.hasGiant(level.getGameTime())) {
@@ -145,9 +148,11 @@ public final class GiantSpawner {
 
     /** Roaming ground, dry, and no more than {@link #MAX_UNEVENNESS} blocks up and down nearby (trees don't count). */
     public static boolean isGoodSpot(ServerLevel level, BlockPos spot) {
-        if (!level.getBiome(spot).is(MountainGiant.ROAMING_GROUNDS)) {
-            return false;
-        }
+        return level.getBiome(spot).is(MountainGiant.ROAMING_GROUNDS) && isFlatDryGround(level, spot);
+    }
+
+    /** Dry, and no more than {@link #MAX_UNEVENNESS} blocks up and down nearby, whatever the biome. */
+    public static boolean isFlatDryGround(ServerLevel level, BlockPos spot) {
         int min = spot.getY();
         int max = spot.getY();
         for (int i = 0; i < 9; i++) {
@@ -167,9 +172,49 @@ public final class GiantSpawner {
     // The omen: tremors and distant footsteps, then the giant rises out of the mist
     // =================================================================================
 
+    /**
+     * The Mountain Horn's call: a spot about {@link #HORN_DISTANCE} blocks away, on the giant's plains if there are
+     * any, otherwise on any flat dry land. Starts the same omen as a natural visit. Null if nowhere will do.
+     */
+    @Nullable
+    public static BlockPos answerHorn(ServerLevel level, BlockPos near, RandomSource random) {
+        BlockPos fallback = null;
+        for (int attempt = 0; attempt < 32; attempt++) {
+            float angle = random.nextFloat() * Mth.TWO_PI;
+            int dist = HORN_DISTANCE - 8 + random.nextInt(17);
+            BlockPos spot = groundAt(level, near.getX() + Mth.floor(Mth.cos(angle) * dist),
+                    near.getZ() + Mth.floor(Mth.sin(angle) * dist));
+            if (spot == null || !isFlatDryGround(level, spot)) {
+                continue;
+            }
+            if (level.getBiome(spot).is(MountainGiant.ROAMING_GROUNDS)) {
+                startOmen(level, spot, false);
+                return spot;
+            }
+            if (fallback == null) {
+                fallback = spot;
+            }
+        }
+        if (fallback != null) {
+            startOmen(level, fallback, true);
+        }
+        return fallback;
+    }
+
+    /** Whether the time of day is inside the night-time window (21:00 to 02:00 or so). */
+    public static boolean isGiantHour(ServerLevel level) {
+        long time = level.getDayTime() % 24000L;
+        return time >= WINDOW_START && time < WINDOW_END;
+    }
+
     private static void startOmen(ServerLevel level, BlockPos spot) {
+        startOmen(level, spot, false);
+    }
+
+    private static void startOmen(ServerLevel level, BlockPos spot, boolean anyGround) {
         omenPos = spot;
         omenTicks = 0;
+        omenAnyGround = anyGround;
         for (ServerPlayer player : playersNear(level, spot)) {
             player.displayClientMessage(Component.translatable("message.mountain_giant.tremor"), true);
         }
@@ -192,7 +237,8 @@ public final class GiantSpawner {
         if (omenTicks >= OMEN_TICKS) {
             omenPos = null;
             GiantWorldData data = GiantWorldData.get(level);
-            if (!data.hasGiant(level.getGameTime()) && isGoodSpot(level, spot)) {
+            if (!data.hasGiant(level.getGameTime())
+                    && (omenAnyGround ? isFlatDryGround(level, spot) : isGoodSpot(level, spot))) {
                 spawnAt(level, spot);
             }
         }
@@ -223,6 +269,11 @@ public final class GiantSpawner {
 
     public static boolean isOmenActive() {
         return omenPos != null;
+    }
+
+    /** Calls off an omen in progress (tests). */
+    public static void cancelOmen() {
+        omenPos = null;
     }
 
     // =================================================================================
