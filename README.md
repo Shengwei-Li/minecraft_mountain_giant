@@ -1,5 +1,7 @@
 # Mountain Giant
 
+![Mountain Giant](docs/images/banner.png)
+
 A NeoForge 1.21.1 mod about one very large, very old thing that walks the plains at night.
 
 ![The Mountain Giant from the front, the side, three-quarters and the back](docs/images/giant.png)
