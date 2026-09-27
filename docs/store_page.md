@@ -46,6 +46,32 @@ Upgrade netherite armour on a smithing table with a Mountain Plate and a gold in
 
 Don't want to wait for the right night? Craft a Mountain Horn from gold blocks, mossy cobblestone and a goat horn, and blow it deep in the night. The ground answers, and the giant rises out of the mist about 80 blocks away. The horn is never used up; after an answer it rests for a day.
 
+### Recipes
+
+**Mountain Hammer** (crafting table)
+
+```
+[Iron Block ] [Mountain Heart ] [Iron Block ]
+[Mossy Cobble] [Stick          ] [Mossy Cobble]
+[           ] [Stick          ] [           ]
+```
+
+**Mountain Horn** (crafting table)
+
+```
+[Gold Block  ] [Mossy Cobble] [Gold Block  ]
+[Mossy Cobble] [Goat Horn   ] [Mossy Cobble]
+[Gold Block  ] [Mossy Cobble] [Gold Block  ]
+```
+
+**Mountain armour** (smithing table), one piece at a time:
+
+```
+Mountain Plate (template slot) + Netherite Helmet / Chestplate / Leggings / Boots + Gold Ingot
+```
+
+Two plates drop from every giant, so two giants give you a full set. Enchantments and wear carry over.
+
 ### Requirements
 
 - Minecraft 1.21.1 with NeoForge
@@ -80,6 +106,32 @@ Modpacks are welcome.
 ### 山岭号角
 
 不想等？用金块、苔石和山羊角合成山岭号角，在深夜吹响。大地会回应，巨人将在约 80 格外从雾中升起。号角不会消耗，召唤成功后需要歇息一天。
+
+### 合成表
+
+**山岭巨锤**（工作台）
+
+```
+[铁块] [山岭之心] [铁块]
+[苔石] [ 木棍  ] [苔石]
+[    ] [ 木棍  ] [    ]
+```
+
+**山岭号角**（工作台）
+
+```
+[金块] [苔石 ] [金块]
+[苔石] [山羊角] [苔石]
+[金块] [苔石 ] [金块]
+```
+
+**山岭盔甲**（锻造台），每件单独升级：
+
+```
+山岭石甲片（模板槽）+ 下界合金头盔 / 胸甲 / 护腿 / 靴子 + 金锭
+```
+
+每只巨人掉落 2 块甲片，打两只就能凑齐一整套。附魔和耐久都会保留。
 
 ### 需求
 
