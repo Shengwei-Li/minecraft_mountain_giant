@@ -3,6 +3,7 @@ package com.mountaingiant.world;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mountaingiant.MountainGiantMod;
 import com.mountaingiant.entity.MountainGiant;
+import com.mountaingiant.network.MistPayload;
 import com.mountaingiant.network.TremorPayload;
 import com.mountaingiant.registry.ModEntities;
 import net.minecraft.commands.CommandSourceStack;
@@ -47,6 +48,9 @@ public final class GiantSpawner {
     private static final int ATTEMPT_INTERVAL = 200;
     private static final int OMEN_TICKS = 200;
     private static final double OMEN_RANGE = 160.0;
+    /** How thick the mist gets while the giant comes (about 40 blocks of sight), and how long it stays after. */
+    private static final float OMEN_MIST = 0.75F;
+    private static final int MIST_AFTER_RISING = 120;
     private static final int MIN_DISTANCE = 48;
     private static final int MAX_DISTANCE = 96;
     /** Largest height difference of the ground (trees ignored) within {@link #FLAT_RADIUS} of the spawn point. */
@@ -232,6 +236,7 @@ public final class GiantSpawner {
                 level.playSound(null, sound.x, sound.y, sound.z, SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE,
                         1.5F + 2.5F * progress, 0.3F);
                 PacketDistributor.sendToPlayer(player, new TremorPayload(0.15F + 0.25F * progress));
+                PacketDistributor.sendToPlayer(player, new MistPayload(OMEN_MIST, 60));
             }
         }
         if (omenTicks >= OMEN_TICKS) {
@@ -240,6 +245,10 @@ public final class GiantSpawner {
             if (!data.hasGiant(level.getGameTime())
                     && (omenAnyGround ? isFlatDryGround(level, spot) : isGoodSpot(level, spot))) {
                 spawnAt(level, spot);
+                // it rises somewhere out in the mist, which then slowly lifts to show it
+                for (ServerPlayer player : playersNear(level, spot)) {
+                    PacketDistributor.sendToPlayer(player, new MistPayload(OMEN_MIST, MIST_AFTER_RISING));
+                }
             }
         }
     }

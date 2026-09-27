@@ -23,7 +23,9 @@ public record TremorPayload(float strength) implements CustomPacketPayload {
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("1").playToClient(TYPE, STREAM_CODEC, TremorPayload::handle);
+        event.registrar("1")
+                .playToClient(TYPE, STREAM_CODEC, TremorPayload::handle)
+                .playToClient(MistPayload.TYPE, MistPayload.STREAM_CODEC, MistPayload::handle);
     }
 
     private static void handle(TremorPayload payload, IPayloadContext context) {

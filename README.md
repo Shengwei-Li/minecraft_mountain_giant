@@ -18,7 +18,8 @@ managed to knock off it.
 **There is only one.** A world never has more than one Mountain Giant at a time. It turns up on about one night in
 three, and never stays away long: every quiet night makes the next one likelier, and by the fourth it comes for
 certain. It arrives some time between late evening and the small hours, somewhere fairly level and dry 48 to 96 blocks from a
-player: plains, snowy plains or a meadow. You'll hear it about ten seconds before you see it.
+player: plains, snowy plains or a meadow. You'll hear it about ten seconds before you see it: the ground shakes, a thick mist rolls in over
+the land, and when it slowly lifts the giant is standing out there.
 
 **It isn't looking for you.** The giant is neutral. It walks, it tramples, and when it reaches the edge of its plains or
 deep water it stops, looks around, and turns back. Leave it alone and it will leave you alone. Just don't stand next to
@@ -165,7 +166,7 @@ its 3×3 digging. They take about a minute.
 
 ## 中文简介
 
-山岭巨人是一个 NeoForge 1.21.1 模组。某些夜晚，大地会先颤动，远处传来脚步声，随后一个 28 格高的石头巨人从雾中站起，
+山岭巨人是一个 NeoForge 1.21.1 模组。某些夜晚，大地会先颤动，远处传来脚步声，大雾随之漫过大地，雾散时一个 28 格高的石头巨人已经站在远处，
 沿直线穿过平原，把挡路的树木、房屋和山坡一路踏平，浅河直接蹚过，天亮时走进雾里消失。它平时不主动攻击，被打了才会追击和砸拳，
 但站在它脚边或者砸拳的落点附近也会被波及。
 巨人每损失 10% 的血量就会掉落一批粗铜或粗铁，击败后掉落 10 颗钻石和山岭之心。山岭之心可以合成山岭巨锤：

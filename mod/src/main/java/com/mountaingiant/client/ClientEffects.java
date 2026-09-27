@@ -3,6 +3,7 @@ package com.mountaingiant.client;
 import com.mountaingiant.MountainGiantMod;
 import com.mountaingiant.entity.MountainGiant;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -12,7 +13,10 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 
-/** Camera shake for footsteps and smashes, and the fog the giant leaves in. Only ever used on the client. */
+/**
+ * Camera shake for footsteps and smashes, and fog: the mist that rolls in over the land when the giant comes
+ * (sent by the server) and the fog the giant itself rises from and vanishes into. Only ever used on the client.
+ */
 @EventBusSubscriber(modid = MountainGiantMod.MODID, value = Dist.CLIENT)
 public final class ClientEffects {
     /** Fog is full within this distance of a vanishing giant and fades out by FOG_RANGE. */
@@ -22,8 +26,17 @@ public final class ClientEffects {
     private static final float FOG_THICK_DISTANCE = 12.0F;
     private static final float FOG_RED = 0.78F, FOG_GREEN = 0.80F, FOG_BLUE = 0.82F;
 
+    /** Mist thickens this much per tick when the giant is coming (~7 s to full), and lifts this much per tick after. */
+    private static final float MIST_RISE = 0.005F;
+    private static final float MIST_LIFT = 0.0015F;
+    /** Fog colour is scaled down by the darkness of the sky (never below this), so night mist stays dark. */
+    private static final float MIN_FOG_BRIGHTNESS = 0.18F;
+
     private static float trauma;
     private static float fog;
+    private static float mist;
+    private static float mistTarget;
+    private static int mistHold;
 
     private ClientEffects() {
     }
@@ -46,9 +59,22 @@ public final class ClientEffects {
         trauma = Math.min(1.5F, Math.max(trauma, strength));
     }
 
+    /** Mist over the land (the server says the giant is coming): thicken to {@code level}, hold, then lift. */
+    public static void mist(float level, int holdTicks) {
+        mistTarget = Math.max(mistTarget, level);
+        mistHold = Math.max(mistHold, holdTicks);
+    }
+
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         trauma = Math.max(0.0F, trauma - 0.06F);
+
+        if (mistHold > 0) {
+            mistHold--;
+        } else {
+            mistTarget = 0.0F;
+        }
+        mist = mistTarget > mist ? Math.min(mistTarget, mist + MIST_RISE) : Math.max(mistTarget, mist - MIST_LIFT);
 
         float target = 0.0F;
         Minecraft mc = Minecraft.getInstance();
@@ -62,14 +88,23 @@ public final class ClientEffects {
         }
         // rolls in over a few seconds; lingers a while after the giant is gone
         fog = target > fog ? Math.min(target, fog + 0.02F) : Math.max(target, fog - 0.004F);
+        if (mc.level == null) {
+            mist = mistTarget = 0.0F;
+            mistHold = 0;
+        }
+    }
+
+    private static float thickness() {
+        return Math.max(fog, mist);
     }
 
     @SubscribeEvent
     public static void onRenderFog(ViewportEvent.RenderFog event) {
-        if (fog <= 0.01F) {
+        float t = thickness();
+        if (t <= 0.01F) {
             return;
         }
-        float f = fog * fog * (3.0F - 2.0F * fog); // smoothstep
+        float f = t * t * (3.0F - 2.0F * t); // smoothstep
         event.setFarPlaneDistance(Mth.lerp(f, event.getFarPlaneDistance(), FOG_THICK_DISTANCE));
         event.setNearPlaneDistance(Mth.lerp(f, event.getNearPlaneDistance(), -4.0F));
         event.setCanceled(true); // apply the modified distances
@@ -77,13 +112,18 @@ public final class ClientEffects {
 
     @SubscribeEvent
     public static void onFogColor(ViewportEvent.ComputeFogColor event) {
-        if (fog <= 0.01F) {
+        float t = thickness();
+        if (t <= 0.01F) {
             return;
         }
-        float f = Math.min(1.0F, fog * 1.2F);
-        event.setRed(Mth.lerp(f, event.getRed(), FOG_RED));
-        event.setGreen(Mth.lerp(f, event.getGreen(), FOG_GREEN));
-        event.setBlue(Mth.lerp(f, event.getBlue(), FOG_BLUE));
+        float f = Math.min(1.0F, t * 1.2F);
+        // pale grey by day, a dim blue-grey at night
+        ClientLevel level = Minecraft.getInstance().level;
+        float light = level == null ? 1.0F
+                : Mth.clamp(level.getSkyDarken((float) event.getPartialTick()), MIN_FOG_BRIGHTNESS, 1.0F);
+        event.setRed(Mth.lerp(f, event.getRed(), FOG_RED * light));
+        event.setGreen(Mth.lerp(f, event.getGreen(), FOG_GREEN * light));
+        event.setBlue(Mth.lerp(f, event.getBlue(), FOG_BLUE * light));
     }
 
     @SubscribeEvent
