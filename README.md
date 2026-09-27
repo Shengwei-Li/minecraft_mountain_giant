@@ -147,7 +147,7 @@ You need Minecraft Java 1.21.1 with NeoForge, and GeckoLib.
    profile to the Minecraft Launcher.
 2. Download GeckoLib for NeoForge 1.21.1 (4.9 or newer) from
    [Modrinth](https://modrinth.com/mod/geckolib) or [CurseForge](https://www.curseforge.com/minecraft/mc-mods/geckolib).
-3. Put the GeckoLib jar and `mountain_giant-1.0.0.jar` into the `mods` folder of your game directory
+3. Put the GeckoLib jar and `mountain_giant-1.0.0+1.21.1.jar` into the `mods` folder of your game directory
    (`%APPDATA%\.minecraft\mods` on Windows unless the profile uses its own directory).
 4. Start the NeoForge 1.21.1 profile.
 
@@ -163,6 +163,12 @@ gradlew runGameTestServer
 The game tests run the giant through a flat field, a stone ring, a moat, scattered ponds, a hill, a ring of houses and a
 forest, check the chase, the ore tiers, the arm hitboxes, the dawn exit, natural spawning, the hammer's shockwave and
 its 3×3 digging. They take about a minute.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Modpacks are welcome.
+
+Made by CrayonDev26.
 
 ---
 

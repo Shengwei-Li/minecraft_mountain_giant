@@ -30,5 +30,6 @@
   "command.mountain_giant.already": "这个世界已经有一只山岭巨人了。",
   "command.mountain_giant.no_spot": "你周围 48-96 格内没有平坦干燥的平原。",
   "command.mountain_giant.omen": "%s, %s, %s 附近的大地开始颤动。",
-  "command.mountain_giant.status": "巨人：%s | 今晚：%s | 连续未出现：%s 晚 | 当前时间：%s"
+  "command.mountain_giant.status": "巨人：%s | 今晚：%s | 连续未出现：%s 晚 | 当前时间：%s",
+  "fml.menu.mods.info.description.mountain_giant": "某些夜晚，大地开始颤动，大雾漫过平原，一个 28 格高、由岩石、苔藓和积雪构成的巨人从雾中站起。它在平原上行走直到天亮，把挡路的树木、墙和房屋一路踏平，只有被攻击时才会反击。随着它受伤，敲下它身上的矿石；击倒它能获得钻石和山岭之心，用它留下的东西锻造山岭巨锤和山岭盔甲。等不及天黑？吹响山岭号角。"
 }

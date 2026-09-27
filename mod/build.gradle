@@ -14,7 +14,8 @@ tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-version = mod_version
+// the jar is named mountain_giant-<version>+<minecraft version>.jar
+version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 
 sourceSets.main.resources {
@@ -158,6 +159,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
             loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
@@ -199,4 +201,9 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+
+// ship the licence inside the jar
+tasks.named('jar') {
+    from(rootProject.file('../LICENSE'))
 }
