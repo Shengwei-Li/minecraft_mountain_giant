@@ -61,6 +61,10 @@ neoForge {
     runs {
         client {
             client()
+            // gradlew runClient -PjoinServer : join the local dedicated server (gradlew runServer) straight away
+            if (project.hasProperty('joinServer')) {
+                programArguments.addAll '--quickPlayMultiplayer', 'localhost'
+            }
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
